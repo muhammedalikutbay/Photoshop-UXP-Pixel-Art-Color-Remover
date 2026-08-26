@@ -14,9 +14,9 @@ The initial manifest, source tree, package configuration, panel shell, pure logi
 
 The current implementation exposes `Select` and `Select & Delete` only after at least one color has been added. The eyedropper icon activates Photoshop’s Eyedropper tool; the next canvas sample updates Photoshop’s foreground color and is copied into the HEX field. Clicking the icon a second time imports the current foreground color as a fallback. Target mode can be Active Layer or All Visible Layers; the latter processes visible raster layers recursively inside visible groups and reports skipped non-pixel layers.
 
-The main content has its own scroll area, while the Select actions and status remain fixed at the bottom of the panel. Adding many colors uses a bounded list scroll area and does not push the action buttons out of view. Target options use a full-row click area with a larger custom radio indicator; the controls remain keyboard-focusable through their underlying radio inputs.
+The main content has its own scroll area, while the Select actions and status remain fixed at the bottom of the panel. Adding many colors uses a bounded, wrapping swatch area and does not push the action buttons out of view. Each swatch has a remove action and the section has Clear All. Target options use a segmented full-row click area; the controls remain keyboard-focusable through their underlying radio inputs.
 
-The HEX row is one container containing the text input, an eyedropper icon button, and **Add color**. Selected colors render as swatch tiles with a top-right remove button. Settings and Target share one container. The current manifest uses Manifest v5, Photoshop minimum version 23.3.0, and Photoshop API version 2. The manifest and host version must be rechecked before release.
+The color-entry row contains an eyedropper icon button, normalized HEX input, and **Add Color**. It wraps the Add Color action below the input on narrow panels. Settings and Target share one card and wrap independently. The current manifest uses Manifest v5, Photoshop minimum version 23.3.0, and Photoshop API version 2. The manifest and host version must be rechecked before release.
 
 ## Development load and `.ccx` packaging
 
@@ -26,6 +26,8 @@ For development, use UXP Developer Tool:
 2. Use **Add Plugin** and select the repository root.
 3. Use **Load & Watch** to load the panel into Photoshop.
 4. Use **Reload** after source changes. If `manifest.json` changes, use **Unload**, then **Load**.
+
+The build bundles TypeScript into `dist/main.js` and copies the UXP-compatible panel stylesheet to `dist/styles.css`. Both files are required in the distributable package.
 
 For an installable package, use the plugin’s `... → Package` action in UXP Developer Tool after building. Photoshop UXP plugins are distributed as `.ccx` files. The generated `.ccx` can be installed locally with a compatible installer such as the aescripts ZXP/UXP Installer. `.zxp` is the CEP format and is not the package format for this repository.
 
@@ -79,6 +81,8 @@ The first host test pass must cover:
 15. Eyedropper activation, automatic HEX synchronization, duplicate event suppression, and second-click fallback.
 16. All Visible Layers with two visible pixel layers at different positions.
 17. Visible groups, hidden layers, locked visible layers, and visible non-pixel layers.
+18. Panel widths near 230, 280, and 400 pixels, plus a short panel height; verify that content scrolls and bottom actions remain visible.
+19. Individual swatch removal and Clear All with one and many configured colors.
 
 For each test, record Photoshop version, document mode/bit depth, expected result, actual result, and any console error.
 

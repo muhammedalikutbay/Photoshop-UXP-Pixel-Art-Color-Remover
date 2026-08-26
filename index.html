@@ -3,55 +3,100 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Pixel Art Color Remover</title>
-    <link rel="stylesheet" href="src/ui/styles.css" />
+    <title>PixelArt Color Remover</title>
+    <link rel="stylesheet" href="dist/styles.css" />
   </head>
   <body>
     <main class="panel">
+      <header class="app-header">
+        <span class="app-mark" aria-hidden="true">
+          <span class="mark-cell cyan"></span><span class="mark-cell red"></span>
+          <span class="mark-cell yellow"></span><span class="mark-cell blue"></span>
+        </span>
+        <span class="app-title">PixelArt Color Remover</span>
+      </header>
+
       <div class="panel-content">
         <section class="section colors-section" aria-labelledby="colors-heading">
           <div class="section-heading">
-            <h1 id="colors-heading">Colors</h1>
-            <span id="color-count" class="muted">0</span>
+            <div class="heading-group">
+              <h1 id="colors-heading">Selected Colors</h1>
+              <span id="color-count" class="count-badge">0</span>
+            </div>
+            <button id="clear-colors-button" class="clear-button" type="button" disabled>
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M4 7h16M9 7V4h6v3m-9 0 1 14h10l1-14M10 11v6m4-6v6" />
+              </svg>
+              <span>Clear All</span>
+            </button>
           </div>
+
           <div id="color-list" class="color-list" aria-live="polite"></div>
 
           <form id="color-form" class="add-color-form">
-            <label for="hex-input">HEX</label>
-            <div class="hex-container">
-              <input id="hex-input" name="hex" type="text" placeholder="#FF00FF" maxlength="7" autocomplete="off" />
-              <button id="eyedropper-button" class="icon-action" type="button" title="Pick from Photoshop canvas" aria-label="Pick color from Photoshop canvas">
-                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                  <path d="m14.7 4.3 5 5-2.1 2.1-1.2-1.2-7.9 7.9H5.2v-3.3l7.9-7.9-1.2-1.2 2.8-2.8Zm-7.9 12.5v.3h.3l7.9-7.9-.3-.3-7.9 7.9ZM4 21h16" />
-                </svg>
-              </button>
-              <button class="add-button" type="submit">Add color</button>
-            </div>
+            <button id="eyedropper-button" class="tool-button" type="button" title="Pick from Photoshop canvas" aria-label="Pick color from Photoshop canvas">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="m14.7 4.3 5 5-2.1 2.1-1.2-1.2-7.9 7.9H5.2v-3.3l7.9-7.9-1.2-1.2 2.8-2.8Zm-7.9 12.5v.3h.3l7.9-7.9-.3-.3-7.9 7.9ZM4 21h5" />
+              </svg>
+            </button>
+
+            <label class="hex-field" for="hex-input">
+              <span class="hex-prefix">#</span>
+              <input id="hex-input" name="hex" type="text" placeholder="1A7F8B" maxlength="6" autocomplete="off" spellcheck="false" aria-label="HEX color" />
+            </label>
+
+            <button class="add-button" type="submit">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14" /></svg>
+              <span>Add Color</span>
+            </button>
           </form>
         </section>
 
         <section class="section settings-section" aria-labelledby="settings-heading">
-          <h1 id="settings-heading">Settings</h1>
-          <label class="field" for="tolerance-input">
-            <span>Tolerance</span>
-            <input id="tolerance-input" type="number" min="0" max="255" step="1" value="0" />
-          </label>
+          <div class="section-heading settings-heading">
+            <h1 id="settings-heading">Settings</h1>
+            <svg class="settings-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Zm8 3.5-2-.8-.5-1.2.8-2-2.3-2.3-2 .8-1.2-.5-.8-2H8.8L8 6l-1.2.5-2-.8L2.5 8l.8 2-.5 1.2-2 .8v3l2 .8.5 1.2-.8 2 2.3 2.3 2-.8L8 21l.8 2h3l.8-2 1.2-.5 2 .8 2.3-2.3-.8-2 .5-1.2 2-.8v-3Z" />
+            </svg>
+          </div>
 
-          <fieldset class="target-group">
-            <legend>Target</legend>
-            <label class="radio-row"><input type="radio" name="target" value="active-layer" checked /><span class="radio-box" aria-hidden="true"></span><span>Active Layer</span></label>
-            <label class="radio-row"><input type="radio" name="target" value="visible-layers" /><span class="radio-box" aria-hidden="true"></span><span>All Visible Layers</span></label>
-            <p class="hint">Visible pixel layers are processed. Adjustment, text, and smart-object layers are skipped.</p>
-          </fieldset>
+          <div class="settings-content">
+            <label class="setting-control tolerance-control" for="tolerance-input">
+              <span class="setting-label">Tolerance</span>
+              <input id="tolerance-input" type="number" min="0" max="255" step="1" value="0" />
+            </label>
+
+            <div class="setting-control target-control">
+              <span class="setting-label">Target</span>
+              <div class="segmented-control">
+                <label class="segment-option">
+                  <input type="radio" name="target" value="active-layer" checked />
+                  <span>Selected Layer</span>
+                </label>
+                <label class="segment-option">
+                  <input type="radio" name="target" value="visible-layers" />
+                  <span>All Layers</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <p class="hint">All Layers processes visible pixel layers and skips unsupported layer types.</p>
         </section>
       </div>
 
-      <section class="actions">
-        <button id="select-button" class="secondary" type="button" disabled>Select</button>
-        <button id="delete-button" class="primary" type="button" disabled>Select &amp; Delete</button>
-      </section>
-
       <p id="status" class="status" role="status">Ready. Add one or more colors to begin.</p>
+
+      <section class="actions">
+        <button id="select-button" class="select-action" type="button" disabled>
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 8V5h3m8 0h3v3m0 8v3h-3M8 19H5v-3" /></svg>
+          <span>Select</span>
+        </button>
+        <button id="delete-button" class="delete-action" type="button" disabled>
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 7h16M9 7V4h6v3m-9 0 1 14h10l1-14M10 11v6m4-6v6" /></svg>
+          <span>Select &amp; Delete</span>
+        </button>
+      </section>
     </main>
     <script src="dist/main.js"></script>
   </body>

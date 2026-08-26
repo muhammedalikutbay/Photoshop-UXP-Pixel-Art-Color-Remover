@@ -16,7 +16,8 @@ The first implementation target is:
 - Select & Delete
 - Photoshop Eyedropper button that writes sampled foreground colors into the HEX field
 - Eyedropper, HEX input, and Add color action in one compact container
-- Color swatch tiles with one-click removal
+- Color swatch tiles with one-click removal and Clear All
+- Compact app header and card-based Settings controls
 - Responsive scrolling content with always-visible actions
 
 Visible-layer mode traverses visible groups and processes only editable raster (`LayerKind.NORMAL`) layers. Visible adjustment, text, smart-object, and fill layers are reported as skipped because the Imaging API cannot safely map their rendered pixels back to editable source pixels.

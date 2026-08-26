@@ -34,9 +34,11 @@
 
 - [x] Activate Photoshop’s Eyedropper and synchronize sampled foreground colors with HEX.
 - [x] Render selected colors as removable swatch tiles.
+- [x] Add a Clear All action for configured colors.
 - [x] Combine Settings and Target into one container.
-- [x] Remove the panel title, description, and preset workflow.
+- [x] Remove the description and preset workflow; add a compact branded application header.
 - [x] Keep actions visible with a fixed action/status area and scrolling content.
+- [x] Add flex-based responsive wrapping for narrow panel widths.
 - [ ] Complete the manual Photoshop UI smoke test.
 
 ## Release gates

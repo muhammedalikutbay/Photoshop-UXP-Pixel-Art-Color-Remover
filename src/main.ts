@@ -42,10 +42,7 @@ function renderColors(): void {
     const chip = document.createElement("div");
     chip.className = `color-chip${isLightColor(color) ? " light" : ""}`;
     chip.style.backgroundColor = formatHex(color);
-
-    const label = document.createElement("span");
-    label.className = "color-chip-label";
-    label.textContent = formatHex(color);
+    chip.title = formatHex(color);
 
     const remove = document.createElement("button");
     remove.className = "color-chip-remove";
@@ -61,7 +58,6 @@ function renderColors(): void {
       setStatus(`${formatHex(color)} removed.`);
     });
 
-    chip.appendChild(label);
     chip.appendChild(remove);
     list.appendChild(chip);
   }
@@ -71,6 +67,7 @@ function initialize(): void {
   const colorForm = getElement<HTMLFormElement>("color-form");
   const hexInput = getElement<HTMLInputElement>("hex-input");
   const eyedropperButton = getElement<HTMLButtonElement>("eyedropper-button");
+  const clearColorsButton = getElement<HTMLButtonElement>("clear-colors-button");
   const toleranceInput = getElement<HTMLInputElement>("tolerance-input");
   const selectButton = getElement<HTMLButtonElement>("select-button");
   const deleteButton = getElement<HTMLButtonElement>("delete-button");
@@ -81,13 +78,19 @@ function initialize(): void {
     const enabled = colors.length > 0;
     selectButton.disabled = !enabled;
     deleteButton.disabled = !enabled;
+    clearColorsButton.disabled = !enabled;
   };
+
+  hexInput.addEventListener("input", () => {
+    const normalized = hexInput.value.replace(/^#/, "").replace(/[^0-9a-f]/gi, "").slice(0, 6).toUpperCase();
+    if (hexInput.value !== normalized) hexInput.value = normalized;
+  });
 
   colorForm.addEventListener("submit", (event) => {
     event.preventDefault();
     const parsed = parseHex(hexInput.value);
     if (!parsed) {
-      setStatus("Enter a valid HEX color such as #FF00FF.", "error");
+      setStatus("Enter a valid HEX color such as 1A7F8B.", "error");
       hexInput.focus();
       return;
     }
@@ -110,7 +113,7 @@ function initialize(): void {
     try {
       const activation = await eyedropper.activate((sampledColor) => {
         const sampledHex = formatHex(sampledColor);
-        hexInput.value = sampledHex;
+        hexInput.value = sampledHex.slice(1);
         eyedropperButton.classList.remove("active");
         setStatus(`${sampledHex} sampled. Click Add color to add it.`);
       });
@@ -125,6 +128,14 @@ function initialize(): void {
     } finally {
       eyedropperButton.disabled = false;
     }
+  });
+
+  clearColorsButton.addEventListener("click", () => {
+    if (colors.length === 0) return;
+    colors.splice(0, colors.length);
+    renderColors();
+    updateActionState();
+    setStatus("All colors cleared.");
   });
 
   toleranceInput.addEventListener("change", () => {

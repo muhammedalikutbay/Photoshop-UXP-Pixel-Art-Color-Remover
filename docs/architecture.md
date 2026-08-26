@@ -55,7 +55,7 @@ src/
 
 ## UI behavior
 
-Selected colors are shown as removable flex-based swatch tiles because UXP does not implement CSS Grid. The HEX input, Photoshop Eyedropper trigger, and Add color action share one container. The service activates Photoshop’s Eyedropper, listens for the foreground-color `set` event, and writes the sampled RGB value into HEX. Settings and Target share one container. The main content scrolls independently while the action buttons and status remain visible.
+The panel uses a compact application header and two card sections. Selected colors are shown as removable, flex-based swatch tiles with a Clear All action because UXP does not implement CSS Grid. The Photoshop Eyedropper trigger, HEX input, and Add Color action share one responsive row. The service activates Photoshop’s Eyedropper, listens for the foreground-color `set` event, and writes the sampled RGB value into HEX. Settings contains tolerance and a segmented Target control. The content area scrolls independently while status and the two primary actions remain visible; at narrow widths, input and settings controls wrap into additional rows.
 
 ## Color and tolerance semantics
 
