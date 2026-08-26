@@ -2,17 +2,17 @@
 
 ## Current phase
 
-The repository is in research and architecture phase. There is no manifest, source tree, package configuration, or build output yet.
+The initial manifest, source tree, package configuration, panel shell, and pure logic tests now exist. Photoshop host loading and document mutation are still pending.
 
 ## Planned local setup
 
 1. Install a supported Photoshop version and the UXP Developer Tool through Adobe Creative Cloud.
-2. Create the plugin scaffold with Manifest v5 and a Photoshop panel entrypoint.
-3. Add TypeScript and the smallest build configuration that produces UXP-compatible JavaScript.
-4. Load the plugin through the UXP Developer Tool.
+2. Run `npm install`.
+3. Run `npm run check`.
+4. Load the repository root through the UXP Developer Tool.
 5. Keep the developer console open while testing Photoshop operations.
 
-Exact version numbers and commands will be recorded here once the scaffold is created.
+The current manifest uses Manifest v5, Photoshop minimum version 23.3.0, and Photoshop API version 2. The manifest and host version must be rechecked before release.
 
 ## Implementation workflow
 

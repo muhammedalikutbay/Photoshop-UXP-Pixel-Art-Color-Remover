@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Pixel Art Color Remover</title>
+    <link rel="stylesheet" href="src/ui/styles.css" />
+  </head>
+  <body>
+    <main class="panel">
+      <header class="panel-header">
+        <h1>Pixel Art Color Remover</h1>
+        <p>Remove configured colors from the active pixel layer.</p>
+      </header>
+
+      <section class="section" aria-labelledby="colors-heading">
+        <div class="section-heading">
+          <h2 id="colors-heading">Colors</h2>
+          <span id="color-count" class="muted">0</span>
+        </div>
+        <div id="color-list" class="color-list" aria-live="polite"></div>
+        <form id="color-form" class="add-color-form">
+          <label for="hex-input">HEX</label>
+          <div class="input-row">
+            <input id="hex-input" name="hex" type="text" placeholder="#FF00FF" maxlength="7" autocomplete="off" />
+            <button type="submit" class="secondary">Add</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="section" aria-labelledby="settings-heading">
+        <h2 id="settings-heading">Settings</h2>
+        <label class="field" for="tolerance-input">
+          <span>Tolerance</span>
+          <input id="tolerance-input" type="number" min="0" max="255" step="1" value="0" />
+        </label>
+        <fieldset>
+          <legend>Target</legend>
+          <label class="radio-row"><input type="radio" name="target" value="active-layer" checked /> Active Layer</label>
+          <label class="radio-row disabled"><input type="radio" name="target" value="visible-layers" disabled /> All Visible Layers <span>(planned)</span></label>
+        </fieldset>
+      </section>
+
+      <section class="actions">
+        <button id="select-button" class="secondary" type="button" disabled>Select</button>
+        <button id="delete-button" class="primary" type="button" disabled>Select &amp; Delete</button>
+      </section>
+
+      <p id="status" class="status" role="status">Scaffold ready. Photoshop selection integration is next.</p>
+    </main>
+    <script src="dist/main.js"></script>
+  </body>
+</html>

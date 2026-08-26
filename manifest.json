@@ -1,0 +1,43 @@
+{
+  "manifestVersion": 5,
+  "id": "com.pixelart.colorremover",
+  "name": "Pixel Art Color Remover",
+  "version": "0.1.0",
+  "main": "index.html",
+  "host": {
+    "app": "PS",
+    "minVersion": "23.3.0",
+    "data": {
+      "apiVersion": 2,
+      "loadEvent": "use"
+    }
+  },
+  "entrypoints": [
+    {
+      "type": "panel",
+      "id": "pixelColorRemoverPanel",
+      "label": {
+        "default": "Pixel Art Color Remover"
+      },
+      "minimumSize": {
+        "width": 230,
+        "height": 360
+      },
+      "maximumSize": {
+        "width": 600,
+        "height": 900
+      },
+      "preferredDockedSize": {
+        "width": 280,
+        "height": 480
+      },
+      "preferredFloatingSize": {
+        "width": 300,
+        "height": 520
+      }
+    }
+  ],
+  "requiredPermissions": {
+    "localFileSystem": "plugin"
+  }
+}

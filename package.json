@@ -1,0 +1,18 @@
+{
+  "name": "pixel-art-color-remover",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Adobe Photoshop UXP panel for removing configured pixel-art colors.",
+  "scripts": {
+    "build": "node build.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "check": "npm run typecheck && npm test && npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

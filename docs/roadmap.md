@@ -8,17 +8,17 @@
 - Choose the documented Imaging API mask pipeline for V1.
 - Record API limitations and risks.
 
-## Phase 2 — Scaffold
+## Phase 2 — Scaffold — implementation complete, host verification pending
 
-- Add Manifest v5 with a Photoshop panel entrypoint.
-- Add TypeScript, build, and test configuration.
-- Add a minimal panel shell and logger.
-- Confirm the plugin loads in the UXP Developer Tool.
+- [x] Add Manifest v5 with a Photoshop panel entrypoint.
+- [x] Add TypeScript, build, and test configuration.
+- [x] Add a minimal panel shell.
+- [ ] Confirm the plugin loads in the UXP Developer Tool.
 
-## Phase 3 — MVP core
+## Phase 3 — MVP core — started
 
-- Implement HEX parsing, normalization, validation, and deduplication.
-- Implement tolerance validation and pure pixel-mask matching.
+- [x] Implement HEX parsing, normalization, validation, and deduplication.
+- [x] Implement tolerance validation and pure pixel-mask matching.
 - Validate active document and active pixel layer.
 - Read full-resolution layer pixels through Imaging API.
 - Build and apply one combined selection.

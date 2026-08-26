@@ -4,7 +4,7 @@ An Adobe Photoshop UXP panel for selecting pixels matching one or more configure
 
 ## Project status
 
-This repository is currently in the research and architecture phase. The MVP has not been scaffolded or implemented yet.
+The initial scaffold is now in place. Photoshop selection/deletion integration is not implemented yet.
 
 The first implementation target is:
 
@@ -33,11 +33,31 @@ This is deliberately not an ExtendScript/JSX plugin.
 
 ## Installation and build
 
-Not available yet. These instructions will be added when the scaffold and build configuration are created.
+Requirements:
+
+- Adobe Photoshop 23.3.0 or newer
+- UXP Developer Tool
+- Node.js 20 or newer
+
+Install dependencies and build the UXP bundle:
+
+```bash
+npm install
+npm run check
+```
+
+Then load the repository root in the UXP Developer Tool. The generated `dist/main.js` is intentionally ignored by Git and must be rebuilt after source changes.
+
+Available commands:
+
+- `npm run typecheck` — strict TypeScript validation
+- `npm test` — pure color/mask tests
+- `npm run build` — bundle `src/main.ts` into `dist/main.js`
+- `npm run check` — typecheck, tests, and build
 
 ## Known limitations at this stage
 
-- No plugin manifest or executable code exists yet.
+- Photoshop selection and deletion APIs are not connected yet.
 - The supported Photoshop version must be fixed during scaffolding and verified in the UXP Developer Tool.
 - The Color Range batchPlay action remains an experimental fallback, not the primary implementation.
 - “All Visible Layers” is intentionally deferred until its behavior can be implemented and tested reliably.

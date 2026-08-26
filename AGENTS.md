@@ -58,3 +58,13 @@ The authoritative planning documents are:
 - `docs/roadmap.md`
 
 The repository’s implementation must follow these documents unless a later decision is recorded there.
+
+## Git commits
+
+- Commit each completed development task as soon as that task is verified.
+- Use Conventional Commits format: `type(scope): imperative summary`.
+- Preferred types are `feat`, `fix`, `test`, `docs`, `refactor`, `build`, and `chore`.
+- Keep commits focused; do not mix unrelated changes.
+- Run the relevant typecheck, tests, and build before committing code changes.
+- Do not commit generated output such as `dist/` or `node_modules/`.
+- Do not rewrite published history or use destructive Git commands unless explicitly requested.
