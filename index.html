@@ -41,6 +41,22 @@
         </fieldset>
       </section>
 
+      <section class="section" aria-labelledby="presets-heading">
+        <div class="section-heading"><h2 id="presets-heading">Presets</h2><span id="preset-status" class="muted"></span></div>
+        <select id="preset-select" class="preset-select" aria-label="Saved presets">
+          <option value="">No saved presets</option>
+        </select>
+        <div class="input-row preset-row">
+          <input id="preset-name" type="text" placeholder="Preset name" maxlength="80" />
+          <button id="preset-save" class="secondary" type="button">Save</button>
+        </div>
+        <div class="preset-actions">
+          <button id="preset-load" class="secondary" type="button">Load</button>
+          <button id="preset-rename" class="secondary" type="button">Rename</button>
+          <button id="preset-delete" class="secondary" type="button">Delete</button>
+        </div>
+      </section>
+
       <section class="actions">
         <button id="select-button" class="secondary" type="button" disabled>Select</button>
         <button id="delete-button" class="primary" type="button" disabled>Select &amp; Delete</button>

@@ -3,6 +3,8 @@ import { parseHex } from "./core/color/ColorParser";
 import { validateTolerance } from "./core/color/ColorValidator";
 import { removeMatchingColors } from "./photoshop/ColorRemovalService";
 import { userMessage } from "./photoshop/PhotoshopErrors";
+import { createPreset } from "./presets/Preset";
+import { deletePreset, listPresets, renamePreset, savePreset } from "./presets/PresetService";
 
 const colors: RGBColor[] = [];
 let updateActionState: () => void = () => undefined;
@@ -66,6 +68,86 @@ function initialize(): void {
   const toleranceInput = getElement<HTMLInputElement>("tolerance-input");
   const selectButton = getElement<HTMLButtonElement>("select-button");
   const deleteButton = getElement<HTMLButtonElement>("delete-button");
+  const presetSelect = getElement<HTMLSelectElement>("preset-select");
+  const presetName = getElement<HTMLInputElement>("preset-name");
+  const presetStatus = getElement<HTMLSpanElement>("preset-status");
+  const presetSave = getElement<HTMLButtonElement>("preset-save");
+  const presetLoad = getElement<HTMLButtonElement>("preset-load");
+  const presetRename = getElement<HTMLButtonElement>("preset-rename");
+  const presetDelete = getElement<HTMLButtonElement>("preset-delete");
+
+  const refreshPresets = async (): Promise<void> => {
+    try {
+      const presets = await listPresets();
+      presetSelect.replaceChildren();
+      if (presets.length === 0) {
+        presetSelect.add(new Option("No saved presets", ""));
+      } else {
+        for (const preset of presets) presetSelect.add(new Option(preset.name, preset.name));
+      }
+      presetStatus.textContent = presets.length ? `${presets.length} saved` : "";
+    } catch (error) {
+      console.error("Preset load failed", error);
+      presetStatus.textContent = "Storage error";
+    }
+  };
+
+  presetSave.addEventListener("click", async () => {
+    try {
+      const preset = createPreset(presetName.value, colors, Number(toleranceInput.value));
+      await savePreset(preset);
+      presetName.value = "";
+      await refreshPresets();
+      setStatus(`${preset.name} saved.`);
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Could not save preset.", "error");
+    }
+  });
+
+  presetLoad.addEventListener("click", async () => {
+    const selected = presetSelect.value;
+    if (!selected) return;
+    try {
+      const preset = (await listPresets()).find((item) => item.name === selected);
+      if (!preset) return;
+      colors.splice(0, colors.length, ...preset.colors);
+      toleranceInput.value = String(preset.tolerance);
+      renderColors();
+      updateActionState();
+      setStatus(`${preset.name} loaded.`);
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Could not load preset.", "error");
+    }
+  });
+
+  presetRename.addEventListener("click", async () => {
+    const oldName = presetSelect.value;
+    const newName = presetName.value.trim();
+    if (!oldName || !newName) {
+      setStatus("Select a preset and enter its new name.", "error");
+      return;
+    }
+    try {
+      await renamePreset(oldName, newName);
+      presetName.value = "";
+      await refreshPresets();
+      setStatus(`${oldName} renamed to ${newName}.`);
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Could not rename preset.", "error");
+    }
+  });
+
+  presetDelete.addEventListener("click", async () => {
+    const selected = presetSelect.value;
+    if (!selected) return;
+    try {
+      await deletePreset(selected);
+      await refreshPresets();
+      setStatus(`${selected} deleted.`);
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Could not delete preset.", "error");
+    }
+  });
 
   updateActionState = (): void => {
     const enabled = colors.length > 0;
@@ -130,6 +212,7 @@ function initialize(): void {
 
   renderColors();
   updateActionState();
+  void refreshPresets();
 }
 
 initialize();

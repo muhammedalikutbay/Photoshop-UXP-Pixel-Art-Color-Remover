@@ -27,6 +27,11 @@ h2, legend { margin: 0 0 9px; color: #d8d8d8; font-size: 11px; letter-spacing: .
 .input-row { display: flex; gap: 7px; }
 input[type="text"], input[type="number"] { min-width: 0; border: 1px solid #555; border-radius: 3px; background: #1f1f1f; color: #fff; padding: 7px; font-size: 12px; }
 input[type="text"] { flex: 1; font-family: monospace; }
+.preset-select { width: 100%; border: 1px solid #555; border-radius: 3px; background: #1f1f1f; color: #fff; padding: 7px; font-size: 12px; }
+.preset-row { margin-top: 8px; }
+.preset-row input { font-family: Arial, sans-serif; }
+.preset-actions { display: flex; gap: 6px; margin-top: 7px; }
+.preset-actions button { flex: 1; padding-inline: 4px; }
 .field { display: flex; align-items: center; justify-content: space-between; color: #ccc; font-size: 12px; }
 input[type="number"] { width: 76px; }
 fieldset { border: 0; margin: 14px 0 0; padding: 0; }
