@@ -155,7 +155,7 @@
       width,
       height,
       components: 1,
-      chunky: true,
+      chunky: false,
       colorSpace: "Grayscale",
       colorProfile: GRAY_PROFILE
     });
