@@ -11,6 +11,7 @@ export class PhotoshopOperationError extends Error {
       | "EMPTY_COLORS"
       | "INVALID_TOLERANCE"
       | "EMPTY_SELECTION"
+      | "EYEDROPPER_FAILED"
       | "CANCELLED"
   ) {
     super(message);

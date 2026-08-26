@@ -85,12 +85,36 @@ References:
 
 ### UI
 
-The panel is non-blocking UI, which is appropriate for a tool users operate alongside the Photoshop canvas. Plain HTML with compact CSS or built-in Spectrum UXP widgets is sufficient for the MVP. Spectrum Web Components are a future option, but adding their dependency is not necessary for the first scaffold.
+The panel is non-blocking UI, which is appropriate for a tool users operate alongside the Photoshop canvas. UXP is not a full browser: Adobe lists `<input type="color">` as unsupported, and CSS Grid is not available. The implementation therefore uses a Photoshop foreground-color workflow and flexbox-based swatch cards rather than browser color controls or grid layout.
 
 References:
 
 - [Designing for Photoshop](https://developer.adobe.com/photoshop/uxp/2022/design/ux-patterns/designingforphotoshop)
 - [Spectrum UXP reference](https://developer.adobe.com/photoshop/uxp/2022/uxp-api/reference-spectrum/)
+- [Unsupported UXP features](https://developer.adobe.com/photoshop/uxp/guides/uxp_guide/unsupported/)
+
+### Eyedropper integration
+
+The public Photoshop DOM exposes `app.currentTool` as read-only, while `app.foregroundColor` exposes the RGB color selected by Photoshop’s Eyedropper. Since the DOM cannot activate a tool, the icon button uses one narrowly scoped `batchPlay` command inside `executeAsModal`:
+
+```js
+{
+  _obj: "select",
+  _target: [{ _ref: "eyedropperTool" }],
+  _options: { dialogOptions: "dontDisplay" }
+}
+```
+
+Descriptor source: Photoshop’s documented Action JSON `select` command shape and the host tool identifier `eyedropperTool`. Host assumption: Photoshop 23.3 through the current 26.11.2 target. Failure mode: if Photoshop rejects the descriptor, the panel displays a concise error without modifying the document.
+
+After activation, `action.addNotificationListener(["set"], ...)` waits for a descriptor whose `source` is `eyeDropperSample`. It then reads `app.foregroundColor.rgb`, rounds and clamps the channels, and writes `#RRGGBB` into the input. The listener disarms before invoking the UI callback so duplicate host notifications cannot update the color twice. A second icon click imports the current foreground color if the host suppresses the notification.
+
+References:
+
+- [Photoshop application properties](https://developer.adobe.com/photoshop/uxp/2022/ps-reference/classes/photoshop)
+- [Photoshop action notifications](https://developer.adobe.com/photoshop/uxp/2022/ps-reference/media/photoshopaction/)
+- [Photoshop event codes](https://developer.adobe.com/photoshop/uxp/2022/ps-reference/media/eventcodes)
+- [BatchPlay](https://developer.adobe.com/photoshop/uxp/ps_reference/media/batchplay/)
 
 ## Alternatives evaluated
 
@@ -104,7 +128,7 @@ References:
 
 ## BatchPlay status
 
-Adobe documents `batchPlay` as an advanced escape hatch for functionality not exposed by the DOM and recommends trying DOM APIs first. Adobe’s event-code list includes the Color Range event, but the public docs do not define a supported high-level `colorRange` descriptor for this product’s exact requirements. A later proof-of-concept may record and verify the descriptor in the target Photoshop version. Until then, it is not the reliability baseline.
+Adobe documents `batchPlay` as an advanced escape hatch for functionality not exposed by the DOM and recommends trying DOM APIs first. The plugin uses it only to activate the read-only current tool as documented above. Adobe’s event-code list also includes Color Range, but the public docs do not define a supported high-level `colorRange` descriptor for this product’s exact matching requirements, so Color Range is not the selection pipeline.
 
 References:
 

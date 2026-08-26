@@ -36,6 +36,7 @@ src/
 │       └── PixelMaskBuilder.ts
 ├── photoshop/
 │   ├── ColorRemovalService.ts
+│   ├── EyedropperService.ts
 │   ├── PhotoshopErrors.ts
 │   └── PhotoshopTypes.ts
 └── ui/
@@ -54,7 +55,7 @@ src/
 
 ## UI behavior
 
-Selected colors are shown as removable swatch tiles. The HEX input, native UXP color chooser opened by the eyedropper icon, and Add color action share one container. Settings and Target share one container. The main content scrolls independently while the action buttons and status remain visible.
+Selected colors are shown as removable flex-based swatch tiles because UXP does not implement CSS Grid. The HEX input, Photoshop Eyedropper trigger, and Add color action share one container. The service activates Photoshop’s Eyedropper, listens for the foreground-color `set` event, and writes the sampled RGB value into HEX. Settings and Target share one container. The main content scrolls independently while the action buttons and status remain visible.
 
 ## Color and tolerance semantics
 

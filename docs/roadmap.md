@@ -32,7 +32,7 @@
 
 ## Phase 5 — UI polish — implementation complete, host verification pending
 
-- [x] Add a native UXP color picker opened by an eyedropper icon and synchronized with HEX.
+- [x] Activate Photoshop’s Eyedropper and synchronize sampled foreground colors with HEX.
 - [x] Render selected colors as removable swatch tiles.
 - [x] Combine Settings and Target into one container.
 - [x] Remove the panel title, description, and preset workflow.

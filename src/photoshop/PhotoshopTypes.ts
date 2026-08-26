@@ -75,9 +75,16 @@ export interface PhotoshopModule {
   readonly app: {
     readonly documents: readonly unknown[];
     readonly activeDocument: PhotoshopDocument;
+    readonly currentTool: { readonly id: string };
+    readonly foregroundColor: { readonly rgb: { readonly red: number; readonly green: number; readonly blue: number } };
+    bringToFront(): void;
   };
   readonly constants: PhotoshopConstants;
   readonly imaging: PhotoshopImaging;
+  readonly action: {
+    addNotificationListener(events: readonly string[], callback: (eventName: string, descriptor: Record<string, unknown>) => void): Promise<void>;
+    batchPlay(commands: readonly Record<string, unknown>[], options?: Record<string, unknown>): Promise<Record<string, unknown>[]>;
+  };
   readonly core: {
     executeAsModal<T>(target: (context: PhotoshopExecutionContext) => Promise<T>, options: { commandName: string }): Promise<T>;
   };

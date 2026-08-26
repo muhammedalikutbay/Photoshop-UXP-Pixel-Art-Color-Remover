@@ -12,7 +12,7 @@ The initial manifest, source tree, package configuration, panel shell, pure logi
 4. Load the repository root through the UXP Developer Tool.
 5. Keep the developer console open while testing Photoshop operations.
 
-The current implementation exposes `Select` and `Select & Delete` only after at least one color has been added. The HEX field is synchronized with the native color picker opened by the eyedropper icon button. Target mode can be Active Layer or All Visible Layers; the latter processes visible raster layers recursively inside visible groups and reports skipped non-pixel layers.
+The current implementation exposes `Select` and `Select & Delete` only after at least one color has been added. The eyedropper icon activates Photoshop’s Eyedropper tool; the next canvas sample updates Photoshop’s foreground color and is copied into the HEX field. Clicking the icon a second time imports the current foreground color as a fallback. Target mode can be Active Layer or All Visible Layers; the latter processes visible raster layers recursively inside visible groups and reports skipped non-pixel layers.
 
 The main content has its own scroll area, while the Select actions and status remain fixed at the bottom of the panel. Adding many colors uses a bounded list scroll area and does not push the action buttons out of view. Target options use a full-row click area with a larger custom radio indicator; the controls remain keyboard-focusable through their underlying radio inputs.
 
@@ -76,7 +76,7 @@ The first host test pass must cover:
 12. Indexed, Bitmap, Lab, CMYK, grayscale, and unsupported bit-depth documents.
 13. Background and locked pixel layers.
 14. Existing selection before Select and Select & Delete.
-15. Color picker and HEX synchronization.
+15. Eyedropper activation, automatic HEX synchronization, duplicate event suppression, and second-click fallback.
 16. All Visible Layers with two visible pixel layers at different positions.
 17. Visible groups, hidden layers, locked visible layers, and visible non-pixel layers.
 

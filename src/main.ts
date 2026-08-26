@@ -2,6 +2,7 @@ import { colorKey, formatHex, type RGBColor } from "./core/color/Color";
 import { parseHex } from "./core/color/ColorParser";
 import { validateTolerance } from "./core/color/ColorValidator";
 import { removeMatchingColors } from "./photoshop/ColorRemovalService";
+import { createDefaultEyedropperService } from "./photoshop/EyedropperService";
 import { userMessage } from "./photoshop/PhotoshopErrors";
 
 const colors: RGBColor[] = [];
@@ -26,7 +27,7 @@ function isLightColor(color: RGBColor): boolean {
 function renderColors(): void {
   const list = getElement<HTMLDivElement>("color-list");
   const count = getElement<HTMLSpanElement>("color-count");
-  list.replaceChildren();
+  while (list.firstChild) list.removeChild(list.firstChild);
   count.textContent = String(colors.length);
 
   if (colors.length === 0) {
@@ -60,7 +61,8 @@ function renderColors(): void {
       setStatus(`${formatHex(color)} removed.`);
     });
 
-    chip.append(label, remove);
+    chip.appendChild(label);
+    chip.appendChild(remove);
     list.appendChild(chip);
   }
 }
@@ -68,12 +70,12 @@ function renderColors(): void {
 function initialize(): void {
   const colorForm = getElement<HTMLFormElement>("color-form");
   const hexInput = getElement<HTMLInputElement>("hex-input");
-  const colorPicker = getElement<HTMLInputElement>("color-picker");
   const eyedropperButton = getElement<HTMLButtonElement>("eyedropper-button");
   const toleranceInput = getElement<HTMLInputElement>("tolerance-input");
   const selectButton = getElement<HTMLButtonElement>("select-button");
   const deleteButton = getElement<HTMLButtonElement>("delete-button");
   const targetInputs = Array.from(document.querySelectorAll<HTMLInputElement>('input[name="target"]'));
+  const eyedropper = createDefaultEyedropperService();
 
   updateActionState = (): void => {
     const enabled = colors.length > 0;
@@ -103,22 +105,26 @@ function initialize(): void {
     hexInput.focus();
   });
 
-  const syncHexFromPicker = (): void => {
-    hexInput.value = colorPicker.value.toUpperCase();
-  };
-  colorPicker.addEventListener("input", syncHexFromPicker);
-  colorPicker.addEventListener("change", () => {
-    syncHexFromPicker();
-    setStatus("Color picked. Click Add color to add it.");
-  });
-  hexInput.addEventListener("input", () => {
-    const parsed = parseHex(hexInput.value);
-    if (parsed) colorPicker.value = formatHex(parsed);
-  });
-
-  eyedropperButton.addEventListener("click", () => {
-    // UXP's native color input supplies the supported eyedropper/color chooser.
-    colorPicker.click();
+  eyedropperButton.addEventListener("click", async () => {
+    eyedropperButton.disabled = true;
+    try {
+      const activation = await eyedropper.activate((sampledColor) => {
+        const sampledHex = formatHex(sampledColor);
+        hexInput.value = sampledHex;
+        eyedropperButton.classList.remove("active");
+        setStatus(`${sampledHex} sampled. Click Add color to add it.`);
+      });
+      if (activation === "activated") {
+        eyedropperButton.classList.add("active");
+        setStatus("Eyedropper active. Click a pixel on the Photoshop canvas. Click the icon again to sync manually.");
+      }
+    } catch (error) {
+      eyedropperButton.classList.remove("active");
+      console.error("Eyedropper activation failed", error);
+      setStatus(userMessage(error), "error");
+    } finally {
+      eyedropperButton.disabled = false;
+    }
   });
 
   toleranceInput.addEventListener("change", () => {

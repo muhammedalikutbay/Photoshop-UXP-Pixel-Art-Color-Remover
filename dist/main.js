@@ -285,6 +285,75 @@
     return createColorRemovalService(getPhotoshop())(request);
   }
 
+  // src/photoshop/EyedropperService.ts
+  function normalizeChannel(value) {
+    return Math.max(0, Math.min(255, Math.round(Number(value))));
+  }
+  function createEyedropperService(ps) {
+    let armed = false;
+    let listenerRegistered = false;
+    let sampleHandler;
+    const readForegroundColor = () => {
+      const rgb = ps.app.foregroundColor.rgb;
+      return {
+        red: normalizeChannel(rgb.red),
+        green: normalizeChannel(rgb.green),
+        blue: normalizeChannel(rgb.blue)
+      };
+    };
+    const onPhotoshopSet = (eventName, descriptor) => {
+      if (!armed || eventName !== "set" || descriptor.source !== "eyeDropperSample") return;
+      armed = false;
+      sampleHandler?.(readForegroundColor());
+    };
+    const ensureListener = async () => {
+      if (listenerRegistered) return;
+      await ps.action.addNotificationListener(["set"], onPhotoshopSet);
+      listenerRegistered = true;
+    };
+    return {
+      readForegroundColor,
+      async activate(onSample) {
+        if (ps.app.documents.length === 0) {
+          throw new PhotoshopOperationError("Open a Photoshop document before using the eyedropper.", "NO_DOCUMENT");
+        }
+        sampleHandler = onSample;
+        await ensureListener();
+        if (armed) {
+          armed = false;
+          onSample(readForegroundColor());
+          return "captured";
+        }
+        armed = true;
+        try {
+          const results = await ps.core.executeAsModal(
+            async () => ps.action.batchPlay([
+              {
+                _obj: "select",
+                _target: [{ _ref: "eyedropperTool" }],
+                _options: { dialogOptions: "dontDisplay" }
+              }
+            ], {}),
+            { commandName: "Activate Eyedropper" }
+          );
+          const firstResult = results[0];
+          if (firstResult?._obj === "error") {
+            throw new Error(typeof firstResult.message === "string" ? firstResult.message : "Photoshop rejected the Eyedropper command.");
+          }
+        } catch (error) {
+          armed = false;
+          const detail = error instanceof Error ? ` ${error.message}` : "";
+          throw new PhotoshopOperationError(`Could not activate the Photoshop Eyedropper.${detail}`, "EYEDROPPER_FAILED");
+        }
+        ps.app.bringToFront();
+        return "activated";
+      }
+    };
+  }
+  function createDefaultEyedropperService() {
+    return createEyedropperService(__require("photoshop"));
+  }
+
   // src/main.ts
   var colors = [];
   var updateActionState = () => void 0;
@@ -304,7 +373,7 @@
   function renderColors() {
     const list = getElement("color-list");
     const count = getElement("color-count");
-    list.replaceChildren();
+    while (list.firstChild) list.removeChild(list.firstChild);
     count.textContent = String(colors.length);
     if (colors.length === 0) {
       const empty = document.createElement("p");
@@ -333,19 +402,20 @@
         updateActionState();
         setStatus(`${formatHex(color)} removed.`);
       });
-      chip.append(label, remove);
+      chip.appendChild(label);
+      chip.appendChild(remove);
       list.appendChild(chip);
     }
   }
   function initialize() {
     const colorForm = getElement("color-form");
     const hexInput = getElement("hex-input");
-    const colorPicker = getElement("color-picker");
     const eyedropperButton = getElement("eyedropper-button");
     const toleranceInput = getElement("tolerance-input");
     const selectButton = getElement("select-button");
     const deleteButton = getElement("delete-button");
     const targetInputs = Array.from(document.querySelectorAll('input[name="target"]'));
+    const eyedropper = createDefaultEyedropperService();
     updateActionState = () => {
       const enabled = colors.length > 0;
       selectButton.disabled = !enabled;
@@ -370,20 +440,26 @@
       hexInput.value = "";
       hexInput.focus();
     });
-    const syncHexFromPicker = () => {
-      hexInput.value = colorPicker.value.toUpperCase();
-    };
-    colorPicker.addEventListener("input", syncHexFromPicker);
-    colorPicker.addEventListener("change", () => {
-      syncHexFromPicker();
-      setStatus("Color picked. Click Add color to add it.");
-    });
-    hexInput.addEventListener("input", () => {
-      const parsed = parseHex(hexInput.value);
-      if (parsed) colorPicker.value = formatHex(parsed);
-    });
-    eyedropperButton.addEventListener("click", () => {
-      colorPicker.click();
+    eyedropperButton.addEventListener("click", async () => {
+      eyedropperButton.disabled = true;
+      try {
+        const activation = await eyedropper.activate((sampledColor) => {
+          const sampledHex = formatHex(sampledColor);
+          hexInput.value = sampledHex;
+          eyedropperButton.classList.remove("active");
+          setStatus(`${sampledHex} sampled. Click Add color to add it.`);
+        });
+        if (activation === "activated") {
+          eyedropperButton.classList.add("active");
+          setStatus("Eyedropper active. Click a pixel on the Photoshop canvas. Click the icon again to sync manually.");
+        }
+      } catch (error) {
+        eyedropperButton.classList.remove("active");
+        console.error("Eyedropper activation failed", error);
+        setStatus(userMessage(error), "error");
+      } finally {
+        eyedropperButton.disabled = false;
+      }
     });
     toleranceInput.addEventListener("change", () => {
       const tolerance = Number(toleranceInput.value);

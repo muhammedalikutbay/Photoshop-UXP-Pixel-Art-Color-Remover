@@ -4,7 +4,7 @@ An Adobe Photoshop UXP panel for selecting pixels matching one or more configure
 
 ## Project status
 
-The panel, Photoshop selection/deletion pipeline, native color picker, and visible pixel-layer targeting are implemented. The remaining release gate is manual validation in the UXP Developer Tool with a real Photoshop document.
+The panel, Photoshop selection/deletion pipeline, Photoshop Eyedropper synchronization, and visible pixel-layer targeting are implemented. The remaining release gate is manual validation in the UXP Developer Tool with a real Photoshop document.
 
 The first implementation target is:
 
@@ -14,8 +14,8 @@ The first implementation target is:
 - One combined selection for all colors
 - Select
 - Select & Delete
-- Native color picker beside the HEX field
-- Eyedropper color button and HEX input in one compact container
+- Photoshop Eyedropper button that writes sampled foreground colors into the HEX field
+- Eyedropper, HEX input, and Add color action in one compact container
 - Color swatch tiles with one-click removal
 - Responsive scrolling content with always-visible actions
 

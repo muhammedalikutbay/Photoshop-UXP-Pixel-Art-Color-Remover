@@ -20,12 +20,11 @@
             <label for="hex-input">HEX</label>
             <div class="hex-container">
               <input id="hex-input" name="hex" type="text" placeholder="#FF00FF" maxlength="7" autocomplete="off" />
-              <button id="eyedropper-button" class="icon-action" type="button" title="Choose color" aria-label="Choose color">
+              <button id="eyedropper-button" class="icon-action" type="button" title="Pick from Photoshop canvas" aria-label="Pick color from Photoshop canvas">
                 <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                   <path d="m14.7 4.3 5 5-2.1 2.1-1.2-1.2-7.9 7.9H5.2v-3.3l7.9-7.9-1.2-1.2 2.8-2.8Zm-7.9 12.5v.3h.3l7.9-7.9-.3-.3-7.9 7.9ZM4 21h16" />
                 </svg>
               </button>
-              <input id="color-picker" class="color-picker" type="color" value="#FF00FF" aria-label="Choose a color" />
               <button class="add-button" type="submit">Add color</button>
             </div>
           </form>
@@ -38,7 +37,7 @@
             <input id="tolerance-input" type="number" min="0" max="255" step="1" value="0" />
           </label>
 
-          <fieldset>
+          <fieldset class="target-group">
             <legend>Target</legend>
             <label class="radio-row"><input type="radio" name="target" value="active-layer" checked /><span class="radio-box" aria-hidden="true"></span><span>Active Layer</span></label>
             <label class="radio-row"><input type="radio" name="target" value="visible-layers" /><span class="radio-box" aria-hidden="true"></span><span>All Visible Layers</span></label>
