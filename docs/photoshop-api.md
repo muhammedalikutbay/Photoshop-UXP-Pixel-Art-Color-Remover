@@ -10,7 +10,7 @@ The initial implementation now uses the documented APIs described below. The imp
 
 ### Manifest
 
-Use Manifest v5 during scaffolding. Adobe documents v5 as the current manifest feature set, with the permissions model and support from Photoshop 23.3. The plugin targets Photoshop 24.0.0 because the documented `Document.sampleColor({x, y})` API used by the eyedropper was introduced in Photoshop 24.0. The plugin needs only plugin-scoped storage permission for presets; it does not need network or unrestricted filesystem access.
+Use Manifest v5 during scaffolding. Adobe documents v5 as the current manifest feature set, with the permissions model and support from Photoshop 23.3. The plugin targets Photoshop 23.3.0 and does not request filesystem permissions because it has no preset or external storage feature.
 
 Relevant references:
 
@@ -82,24 +82,6 @@ References:
 - [Layer class](https://developer.adobe.com/photoshop/uxp/2022/ps-reference/classes/layer)
 - [Layers collection](https://developer.adobe.com/photoshop/uxp/2022/ps-reference/classes/layers)
 - [Imaging API](https://developer.adobe.com/photoshop/uxp/2022/ps-reference/media/imaging)
-
-### Storage
-
-Presets should use the plugin data folder, not arbitrary filesystem paths. UXP documents `localFileSystem.getDataFolder()` as persistent across host-app version upgrades, and plugin-scoped storage is available without requesting unrestricted access. A simple JSON file can be read/written through the UXP storage APIs. Storage errors must be converted to user-facing messages.
-
-References:
-
-- [UXP persistent file storage](https://developer.adobe.com/photoshop/uxp/2022/uxp-api/reference-js/modules/uxp/persistent-file-storage/storage)
-- [UXP file and folder guidance](https://developer.adobe.com/photoshop/uxp/guides/how-to/)
-
-### Canvas color sampling
-
-The eyedropper uses a two-step documented API flow. First, `imaging.getPixels` requests a scaled RGB preview of the active document and `imaging.encodeImageData` turns it into a panel image. When the user clicks that preview, the click is mapped back to document coordinates and `Document.sampleColor({x, y})` returns the sampled RGB color. The preview image data is disposed immediately after encoding. `sampleColor` requires Photoshop 24.0 or newer.
-
-References:
-
-- [Imaging API](https://developer.adobe.com/photoshop/uxp/2022/ps-reference/media/imaging)
-- [Document.sampleColor](https://developer.adobe.com/photoshop/uxp/2022/ps-reference/classes/document)
 
 ### UI
 

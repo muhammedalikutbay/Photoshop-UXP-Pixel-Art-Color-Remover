@@ -8,67 +8,43 @@
   </head>
   <body>
     <main class="panel">
-      <header class="panel-header">
-        <h1>Pixel Art Color Remover</h1>
-        <p>Remove configured colors from the active pixel layer.</p>
-      </header>
-
       <div class="panel-content">
-      <section class="section" aria-labelledby="colors-heading">
-        <div class="section-heading">
-          <h2 id="colors-heading">Colors</h2>
-          <span id="color-count" class="muted">0</span>
-        </div>
-        <div id="color-list" class="color-list" aria-live="polite"></div>
-        <form id="color-form" class="add-color-form">
-          <label for="hex-input">HEX</label>
-          <div class="input-row color-input-row">
-            <input id="hex-input" name="hex" type="text" placeholder="#FF00FF" maxlength="7" autocomplete="off" />
-            <input id="color-picker" class="color-picker" type="color" value="#FF00FF" aria-label="Choose a color" />
+        <section class="section colors-section" aria-labelledby="colors-heading">
+          <div class="section-heading">
+            <h1 id="colors-heading">Colors</h1>
+            <span id="color-count" class="muted">0</span>
           </div>
-          <div class="color-actions">
-            <button id="eyedropper-button" class="secondary" type="button">Pick from canvas</button>
-            <button type="submit" class="secondary">Add color</button>
-          </div>
-          <div id="eyedropper-panel" class="eyedropper-panel" hidden>
-            <div class="eyedropper-heading">
-              <span>Click a pixel in the preview</span>
-              <button id="eyedropper-close" class="secondary" type="button">Close</button>
+          <div id="color-list" class="color-list" aria-live="polite"></div>
+
+          <form id="color-form" class="add-color-form">
+            <label for="hex-input">HEX</label>
+            <div class="hex-container">
+              <input id="hex-input" name="hex" type="text" placeholder="#FF00FF" maxlength="7" autocomplete="off" />
+              <button id="eyedropper-button" class="icon-action" type="button" title="Choose color" aria-label="Choose color">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path d="m14.7 4.3 5 5-2.1 2.1-1.2-1.2-7.9 7.9H5.2v-3.3l7.9-7.9-1.2-1.2 2.8-2.8Zm-7.9 12.5v.3h.3l7.9-7.9-.3-.3-7.9 7.9ZM4 21h16" />
+                </svg>
+              </button>
+              <input id="color-picker" class="color-picker" type="color" value="#FF00FF" aria-label="Choose a color" />
+              <button class="add-button" type="submit">Add color</button>
             </div>
-            <img id="eyedropper-preview" class="eyedropper-preview" alt="Document color sampling preview" draggable="false" />
-          </div>
-        </form>
-      </section>
+          </form>
+        </section>
 
-      <section class="section" aria-labelledby="settings-heading">
-        <h2 id="settings-heading">Settings</h2>
-        <label class="field" for="tolerance-input">
-          <span>Tolerance</span>
-          <input id="tolerance-input" type="number" min="0" max="255" step="1" value="0" />
-        </label>
-        <fieldset>
-          <legend>Target</legend>
-          <label class="radio-row"><input type="radio" name="target" value="active-layer" checked /><span class="radio-box" aria-hidden="true"></span><span>Active Layer</span></label>
-          <label class="radio-row"><input type="radio" name="target" value="visible-layers" /><span class="radio-box" aria-hidden="true"></span><span>All Visible Layers</span></label>
-          <p class="hint">Visible pixel layers are processed. Adjustment, text, and smart-object layers are skipped.</p>
-        </fieldset>
-      </section>
+        <section class="section settings-section" aria-labelledby="settings-heading">
+          <h1 id="settings-heading">Settings</h1>
+          <label class="field" for="tolerance-input">
+            <span>Tolerance</span>
+            <input id="tolerance-input" type="number" min="0" max="255" step="1" value="0" />
+          </label>
 
-      <section class="section" aria-labelledby="presets-heading">
-        <div class="section-heading"><h2 id="presets-heading">Presets</h2><span id="preset-status" class="muted"></span></div>
-        <select id="preset-select" class="preset-select" aria-label="Saved presets">
-          <option value="">No saved presets</option>
-        </select>
-        <div class="input-row preset-row">
-          <input id="preset-name" type="text" placeholder="Preset name" maxlength="80" />
-          <button id="preset-save" class="secondary" type="button">Save</button>
-        </div>
-        <div class="preset-actions">
-          <button id="preset-load" class="secondary" type="button">Load</button>
-          <button id="preset-rename" class="secondary" type="button">Rename</button>
-          <button id="preset-delete" class="secondary" type="button">Delete</button>
-        </div>
-      </section>
+          <fieldset>
+            <legend>Target</legend>
+            <label class="radio-row"><input type="radio" name="target" value="active-layer" checked /><span class="radio-box" aria-hidden="true"></span><span>Active Layer</span></label>
+            <label class="radio-row"><input type="radio" name="target" value="visible-layers" /><span class="radio-box" aria-hidden="true"></span><span>All Visible Layers</span></label>
+            <p class="hint">Visible pixel layers are processed. Adjustment, text, and smart-object layers are skipped.</p>
+          </fieldset>
+        </section>
       </div>
 
       <section class="actions">

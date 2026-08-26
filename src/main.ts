@@ -2,19 +2,14 @@ import { colorKey, formatHex, type RGBColor } from "./core/color/Color";
 import { parseHex } from "./core/color/ColorParser";
 import { validateTolerance } from "./core/color/ColorValidator";
 import { removeMatchingColors } from "./photoshop/ColorRemovalService";
-import { createDefaultColorSamplingService, type SamplingPreview } from "./photoshop/ColorSamplingService";
 import { userMessage } from "./photoshop/PhotoshopErrors";
-import { createPreset } from "./presets/Preset";
-import { deletePreset, listPresets, renamePreset, savePreset } from "./presets/PresetService";
 
 const colors: RGBColor[] = [];
 let updateActionState: () => void = () => undefined;
 
 function getElement<T extends HTMLElement>(id: string): T {
   const element = document.getElementById(id);
-  if (!element) {
-    throw new Error(`Missing UI element: ${id}`);
-  }
+  if (!element) throw new Error(`Missing UI element: ${id}`);
   return element as T;
 }
 
@@ -24,12 +19,8 @@ function setStatus(message: string, kind: "info" | "error" = "info"): void {
   status.dataset.kind = kind;
 }
 
-function addSelectOption(select: HTMLSelectElement, label: string, value: string): void {
-  const option = document.createElement("option");
-  option.textContent = label;
-  option.value = value;
-  // UXP's HTMLSelectElement does not implement the browser-only add() helper.
-  select.appendChild(option);
+function isLightColor(color: RGBColor): boolean {
+  return (color.red * 299 + color.green * 587 + color.blue * 114) / 1000 > 160;
 }
 
 function renderColors(): void {
@@ -38,36 +29,39 @@ function renderColors(): void {
   list.replaceChildren();
   count.textContent = String(colors.length);
 
-  for (const color of colors) {
-    const row = document.createElement("div");
-    row.className = "color-row";
+  if (colors.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "empty-colors";
+    empty.textContent = "No colors added yet.";
+    list.appendChild(empty);
+    return;
+  }
 
-    const swatch = document.createElement("span");
-    swatch.className = "swatch";
-    swatch.style.backgroundColor = formatHex(color);
-    swatch.setAttribute("aria-label", `${formatHex(color)} preview`);
+  for (const color of colors) {
+    const chip = document.createElement("div");
+    chip.className = `color-chip${isLightColor(color) ? " light" : ""}`;
+    chip.style.backgroundColor = formatHex(color);
 
     const label = document.createElement("span");
-    label.className = "color-value";
+    label.className = "color-chip-label";
     label.textContent = formatHex(color);
 
     const remove = document.createElement("button");
-    remove.className = "icon-button";
+    remove.className = "color-chip-remove";
     remove.type = "button";
-    remove.textContent = "×";
+    remove.textContent = "\u00D7";
     remove.setAttribute("aria-label", `Remove ${formatHex(color)}`);
     remove.addEventListener("click", () => {
       const index = colors.findIndex((item) => colorKey(item) === colorKey(color));
-      if (index >= 0) {
-        colors.splice(index, 1);
-        renderColors();
-        updateActionState();
-        setStatus(`${formatHex(color)} removed.`);
-      }
+      if (index < 0) return;
+      colors.splice(index, 1);
+      renderColors();
+      updateActionState();
+      setStatus(`${formatHex(color)} removed.`);
     });
 
-    row.append(swatch, label, remove);
-    list.append(row);
+    chip.append(label, remove);
+    list.appendChild(chip);
   }
 }
 
@@ -76,101 +70,66 @@ function initialize(): void {
   const hexInput = getElement<HTMLInputElement>("hex-input");
   const colorPicker = getElement<HTMLInputElement>("color-picker");
   const eyedropperButton = getElement<HTMLButtonElement>("eyedropper-button");
-  const eyedropperClose = getElement<HTMLButtonElement>("eyedropper-close");
-  const eyedropperPanel = getElement<HTMLDivElement>("eyedropper-panel");
-  const eyedropperPreview = getElement<HTMLImageElement>("eyedropper-preview");
   const toleranceInput = getElement<HTMLInputElement>("tolerance-input");
   const selectButton = getElement<HTMLButtonElement>("select-button");
   const deleteButton = getElement<HTMLButtonElement>("delete-button");
-  const presetSelect = getElement<HTMLSelectElement>("preset-select");
-  const presetName = getElement<HTMLInputElement>("preset-name");
-  const presetStatus = getElement<HTMLSpanElement>("preset-status");
-  const presetSave = getElement<HTMLButtonElement>("preset-save");
-  const presetLoad = getElement<HTMLButtonElement>("preset-load");
-  const presetRename = getElement<HTMLButtonElement>("preset-rename");
-  const presetDelete = getElement<HTMLButtonElement>("preset-delete");
   const targetInputs = Array.from(document.querySelectorAll<HTMLInputElement>('input[name="target"]'));
-  let samplingPreview: SamplingPreview | undefined;
-
-  const refreshPresets = async (): Promise<void> => {
-    try {
-      const presets = await listPresets();
-      presetSelect.replaceChildren();
-      if (presets.length === 0) {
-        addSelectOption(presetSelect, "No saved presets", "");
-      } else {
-        for (const preset of presets) addSelectOption(presetSelect, preset.name, preset.name);
-      }
-      presetStatus.textContent = presets.length ? `${presets.length} saved` : "";
-    } catch (error) {
-      console.error("Preset load failed", error);
-      presetStatus.textContent = "Storage unavailable";
-      setStatus("Presets could not be loaded. The color removal tools are still available.", "error");
-    }
-  };
-
-  presetSave.addEventListener("click", async () => {
-    try {
-      const preset = createPreset(presetName.value, colors, Number(toleranceInput.value));
-      await savePreset(preset);
-      presetName.value = "";
-      await refreshPresets();
-      setStatus(`${preset.name} saved.`);
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Could not save preset.", "error");
-    }
-  });
-
-  presetLoad.addEventListener("click", async () => {
-    const selected = presetSelect.value;
-    if (!selected) return;
-    try {
-      const preset = (await listPresets()).find((item) => item.name === selected);
-      if (!preset) return;
-      colors.splice(0, colors.length, ...preset.colors);
-      toleranceInput.value = String(preset.tolerance);
-      renderColors();
-      updateActionState();
-      setStatus(`${preset.name} loaded.`);
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Could not load preset.", "error");
-    }
-  });
-
-  presetRename.addEventListener("click", async () => {
-    const oldName = presetSelect.value;
-    const newName = presetName.value.trim();
-    if (!oldName || !newName) {
-      setStatus("Select a preset and enter its new name.", "error");
-      return;
-    }
-    try {
-      await renamePreset(oldName, newName);
-      presetName.value = "";
-      await refreshPresets();
-      setStatus(`${oldName} renamed to ${newName}.`);
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Could not rename preset.", "error");
-    }
-  });
-
-  presetDelete.addEventListener("click", async () => {
-    const selected = presetSelect.value;
-    if (!selected) return;
-    try {
-      await deletePreset(selected);
-      await refreshPresets();
-      setStatus(`${selected} deleted.`);
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Could not delete preset.", "error");
-    }
-  });
 
   updateActionState = (): void => {
     const enabled = colors.length > 0;
     selectButton.disabled = !enabled;
     deleteButton.disabled = !enabled;
   };
+
+  colorForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const parsed = parseHex(hexInput.value);
+    if (!parsed) {
+      setStatus("Enter a valid HEX color such as #FF00FF.", "error");
+      hexInput.focus();
+      return;
+    }
+
+    if (colors.some((color) => colorKey(color) === colorKey(parsed))) {
+      setStatus(`${formatHex(parsed)} is already in the list.`);
+    } else {
+      colors.push(parsed);
+      renderColors();
+      updateActionState();
+      setStatus(`${formatHex(parsed)} added.`);
+    }
+
+    hexInput.value = "";
+    hexInput.focus();
+  });
+
+  const syncHexFromPicker = (): void => {
+    hexInput.value = colorPicker.value.toUpperCase();
+  };
+  colorPicker.addEventListener("input", syncHexFromPicker);
+  colorPicker.addEventListener("change", () => {
+    syncHexFromPicker();
+    setStatus("Color picked. Click Add color to add it.");
+  });
+  hexInput.addEventListener("input", () => {
+    const parsed = parseHex(hexInput.value);
+    if (parsed) colorPicker.value = formatHex(parsed);
+  });
+
+  eyedropperButton.addEventListener("click", () => {
+    // UXP's native color input supplies the supported eyedropper/color chooser.
+    colorPicker.click();
+  });
+
+  toleranceInput.addEventListener("change", () => {
+    const tolerance = Number(toleranceInput.value);
+    if (!validateTolerance(tolerance)) {
+      toleranceInput.value = "0";
+      setStatus("Tolerance must be an integer from 0 to 255.", "error");
+      return;
+    }
+    setStatus(`Tolerance set to ${tolerance}.`);
+  });
 
   const runAction = async (deletePixels: boolean): Promise<void> => {
     const tolerance = Number(toleranceInput.value);
@@ -195,100 +154,11 @@ function initialize(): void {
     }
   };
 
-  colorForm.addEventListener("submit", (event) => {
-    event.preventDefault();
-    const parsed = parseHex(hexInput.value);
-    if (!parsed) {
-      setStatus("Enter a valid HEX color such as #FF00FF.", "error");
-      hexInput.focus();
-      return;
-    }
-
-    if (!colors.some((color) => colorKey(color) === colorKey(parsed))) {
-      colors.push(parsed);
-      renderColors();
-      updateActionState();
-      setStatus(`${formatHex(parsed)} added.`);
-    } else {
-      setStatus(`${formatHex(parsed)} is already in the list.`);
-    }
-
-    hexInput.value = "";
-    hexInput.focus();
-  });
-
-  const syncHexFromPicker = (): void => {
-    hexInput.value = colorPicker.value.toUpperCase();
-  };
-  colorPicker.addEventListener("input", syncHexFromPicker);
-  colorPicker.addEventListener("change", syncHexFromPicker);
-
-  hexInput.addEventListener("input", () => {
-    const parsed = parseHex(hexInput.value);
-    if (parsed) colorPicker.value = formatHex(parsed);
-  });
-
-  toleranceInput.addEventListener("change", () => {
-    const tolerance = Number(toleranceInput.value);
-    if (!validateTolerance(tolerance)) {
-      toleranceInput.value = "0";
-      setStatus("Tolerance must be an integer from 0 to 255.", "error");
-      return;
-    }
-    setStatus(`Tolerance set to ${tolerance}.`);
-  });
-
-  const closeEyedropper = (): void => {
-    samplingPreview = undefined;
-    eyedropperPreview.removeAttribute("src");
-    eyedropperPanel.hidden = true;
-  };
-
-  eyedropperButton.addEventListener("click", async () => {
-    eyedropperButton.disabled = true;
-    setStatus("Preparing a document preview for color sampling...");
-    try {
-      samplingPreview = await createDefaultColorSamplingService().createPreview();
-      eyedropperPreview.src = samplingPreview.dataUrl;
-      eyedropperPanel.hidden = false;
-      setStatus("Click a pixel in the preview to sample its color.");
-    } catch (error) {
-      samplingPreview = undefined;
-      setStatus(userMessage(error), "error");
-    } finally {
-      eyedropperButton.disabled = false;
-    }
-  });
-
-  eyedropperClose.addEventListener("click", closeEyedropper);
-
-  eyedropperPreview.addEventListener("click", async (event) => {
-    if (!samplingPreview) return;
-    const rect = eyedropperPreview.getBoundingClientRect();
-    try {
-      const sampled = await createDefaultColorSamplingService().samplePreview(
-        samplingPreview,
-        event.clientX - rect.left,
-        event.clientY - rect.top,
-        rect.width,
-        rect.height
-      );
-      const sampledHex = formatHex(sampled);
-      hexInput.value = sampledHex;
-      colorPicker.value = sampledHex;
-      closeEyedropper();
-      setStatus(`${sampledHex} sampled from the document.`);
-    } catch (error) {
-      setStatus(userMessage(error), "error");
-    }
-  });
-
   selectButton.addEventListener("click", () => void runAction(false));
   deleteButton.addEventListener("click", () => void runAction(true));
 
   renderColors();
   updateActionState();
-  void refreshPresets();
 }
 
 initialize();

@@ -17,7 +17,6 @@ export interface PhotoshopDocument {
   readonly layers: readonly PhotoshopLayer[];
   readonly activeLayers: readonly PhotoshopLayer[];
   readonly selection: { deselect(): Promise<void> };
-  sampleColor(position: { x: number; y: number }): Promise<{ rgb: { red: number; green: number; blue: number } }>;
 }
 
 export interface PhotoshopLayer {
@@ -48,8 +47,6 @@ export interface PhotoshopImaging {
     colorSpace: "RGB";
     colorProfile: string;
     componentSize: 8;
-    targetSize?: { width?: number; height?: number };
-    applyAlpha?: boolean;
   }): Promise<{ imageData: PhotoshopImageData; sourceBounds: { left: number; top: number; right: number; bottom: number } }>;
   createImageDataFromBuffer(data: Uint8Array, options: {
     width: number;
@@ -66,7 +63,6 @@ export interface PhotoshopImaging {
     targetBounds: { left: number; top: number };
     commandName: string;
   }): Promise<void>;
-  encodeImageData(options: { imageData: PhotoshopImageData; base64: true }): Promise<string>;
 }
 
 export interface PhotoshopConstants {

@@ -31,11 +31,6 @@
   }
 
   // src/core/color/ColorValidator.ts
-  function isRGBColor(value) {
-    return [value.red, value.green, value.blue].every(
-      (component) => Number.isInteger(component) && component >= 0 && component <= 255
-    );
-  }
   function validateTolerance(value) {
     return Number.isInteger(value) && value >= 0 && value <= 255;
   }
@@ -290,161 +285,12 @@
     return createColorRemovalService(getPhotoshop())(request);
   }
 
-  // src/photoshop/ColorSamplingService.ts
-  var RGB_PROFILE2 = "sRGB IEC61966-2.1";
-  function clamp(value, minimum, maximum) {
-    return Math.max(minimum, Math.min(maximum, value));
-  }
-  function normalizeBounds2(raw) {
-    const bounds = {
-      left: Number(raw.left),
-      top: Number(raw.top),
-      right: Number(raw.right),
-      bottom: Number(raw.bottom)
-    };
-    if (!Object.values(bounds).every(Number.isFinite) || bounds.right <= bounds.left || bounds.bottom <= bounds.top) {
-      throw new PhotoshopOperationError("Photoshop returned invalid preview bounds.", "UNSUPPORTED_DOCUMENT");
-    }
-    return bounds;
-  }
-  function createColorSamplingService(ps) {
-    return {
-      async createPreview(maxWidth = 320) {
-        if (ps.app.documents.length === 0) throw new PhotoshopOperationError("Open a Photoshop document before using the eyedropper.", "NO_DOCUMENT");
-        const document2 = ps.app.activeDocument;
-        const documentWidth = Math.max(1, Math.floor(document2.width));
-        const documentHeight = Math.max(1, Math.floor(document2.height));
-        const previewWidth = Math.max(1, Math.min(maxWidth, documentWidth));
-        const result = await ps.imaging.getPixels({
-          documentID: document2.id,
-          sourceBounds: { left: 0, top: 0, right: documentWidth, bottom: documentHeight },
-          colorSpace: "RGB",
-          colorProfile: RGB_PROFILE2,
-          componentSize: 8,
-          targetSize: { width: previewWidth },
-          applyAlpha: true
-        });
-        try {
-          const encoded = await ps.imaging.encodeImageData({ imageData: result.imageData, base64: true });
-          const sourceBounds = normalizeBounds2(result.sourceBounds);
-          return {
-            dataUrl: `data:image/jpeg;base64,${encoded}`,
-            width: result.imageData.width,
-            height: result.imageData.height,
-            sourceBounds
-          };
-        } finally {
-          result.imageData.dispose();
-        }
-      },
-      async samplePreview(preview, offsetX, offsetY, displayWidth, displayHeight) {
-        if (displayWidth <= 0 || displayHeight <= 0) throw new Error("The eyedropper preview is not ready.");
-        const xRatio = clamp(offsetX / displayWidth, 0, 0.999999);
-        const yRatio = clamp(offsetY / displayHeight, 0, 0.999999);
-        const x = Math.floor(preview.sourceBounds.left + xRatio * (preview.sourceBounds.right - preview.sourceBounds.left));
-        const y = Math.floor(preview.sourceBounds.top + yRatio * (preview.sourceBounds.bottom - preview.sourceBounds.top));
-        const color = await ps.app.activeDocument.sampleColor({ x, y });
-        return { red: color.rgb.red, green: color.rgb.green, blue: color.rgb.blue };
-      }
-    };
-  }
-  function createDefaultColorSamplingService() {
-    return createColorSamplingService(__require("photoshop"));
-  }
-
-  // src/presets/Preset.ts
-  function createPreset(name, colors2, tolerance) {
-    const trimmedName = name.trim();
-    if (!trimmedName) throw new Error("Preset name cannot be empty.");
-    if (!Number.isInteger(tolerance) || tolerance < 0 || tolerance > 255) throw new Error("Preset tolerance must be an integer from 0 to 255.");
-    return { schemaVersion: 1, name: trimmedName, colors: [...colors2], tolerance };
-  }
-
-  // src/presets/PresetService.ts
-  var PRESETS_PATH = "plugin-data:/presets.json";
-  function fileSystem() {
-    return __require("uxp").storage.localFileSystem;
-  }
-  function isPreset(value) {
-    if (!value || typeof value !== "object") return false;
-    const preset = value;
-    const tolerance = preset.tolerance;
-    return preset.schemaVersion === 1 && typeof preset.name === "string" && preset.name.trim().length > 0 && typeof tolerance === "number" && Number.isInteger(tolerance) && tolerance >= 0 && tolerance <= 255 && Array.isArray(preset.colors) && preset.colors.every(isRGBColor);
-  }
-  function createPresetService(storage) {
-    async function readPresetMap() {
-      let raw;
-      try {
-        raw = await storage.readFile(PRESETS_PATH, { encoding: "utf-8" });
-      } catch {
-        return {};
-      }
-      let parsed;
-      try {
-        parsed = JSON.parse(typeof raw === "string" ? raw : new TextDecoder().decode(raw));
-      } catch {
-        throw new Error("Preset storage is corrupted.");
-      }
-      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("Preset storage is corrupted.");
-      const entries = Object.entries(parsed);
-      if (!entries.every(([, value]) => isPreset(value))) throw new Error("Preset storage is corrupted.");
-      return Object.fromEntries(entries);
-    }
-    async function writePresetMap(presets) {
-      await storage.writeFile(PRESETS_PATH, JSON.stringify(presets, null, 2), { encoding: "utf-8" });
-    }
-    return {
-      async listPresets() {
-        const presets = await readPresetMap();
-        return Object.values(presets).sort((a, b) => a.name.localeCompare(b.name));
-      },
-      async savePreset(preset) {
-        const presets = await readPresetMap();
-        presets[preset.name] = preset;
-        await writePresetMap(presets);
-      },
-      async deletePreset(name) {
-        const presets = await readPresetMap();
-        delete presets[name];
-        await writePresetMap(presets);
-      },
-      async renamePreset(oldName, newName) {
-        const presets = await readPresetMap();
-        const preset = presets[oldName];
-        if (!preset) throw new Error("Preset not found.");
-        if (presets[newName]) throw new Error("A preset with that name already exists.");
-        delete presets[oldName];
-        presets[newName] = { ...preset, name: newName };
-        await writePresetMap(presets);
-      }
-    };
-  }
-  var defaultService;
-  function getDefaultService() {
-    defaultService ?? (defaultService = createPresetService(fileSystem()));
-    return defaultService;
-  }
-  async function listPresets() {
-    return getDefaultService().listPresets();
-  }
-  async function savePreset(preset) {
-    return getDefaultService().savePreset(preset);
-  }
-  async function deletePreset(name) {
-    return getDefaultService().deletePreset(name);
-  }
-  async function renamePreset(oldName, newName) {
-    return getDefaultService().renamePreset(oldName, newName);
-  }
-
   // src/main.ts
   var colors = [];
   var updateActionState = () => void 0;
   function getElement(id) {
     const element = document.getElementById(id);
-    if (!element) {
-      throw new Error(`Missing UI element: ${id}`);
-    }
+    if (!element) throw new Error(`Missing UI element: ${id}`);
     return element;
   }
   function setStatus(message, kind = "info") {
@@ -452,43 +298,43 @@
     status.textContent = message;
     status.dataset.kind = kind;
   }
-  function addSelectOption(select, label, value) {
-    const option = document.createElement("option");
-    option.textContent = label;
-    option.value = value;
-    select.appendChild(option);
+  function isLightColor(color) {
+    return (color.red * 299 + color.green * 587 + color.blue * 114) / 1e3 > 160;
   }
   function renderColors() {
     const list = getElement("color-list");
     const count = getElement("color-count");
     list.replaceChildren();
     count.textContent = String(colors.length);
+    if (colors.length === 0) {
+      const empty = document.createElement("p");
+      empty.className = "empty-colors";
+      empty.textContent = "No colors added yet.";
+      list.appendChild(empty);
+      return;
+    }
     for (const color of colors) {
-      const row = document.createElement("div");
-      row.className = "color-row";
-      const swatch = document.createElement("span");
-      swatch.className = "swatch";
-      swatch.style.backgroundColor = formatHex(color);
-      swatch.setAttribute("aria-label", `${formatHex(color)} preview`);
+      const chip = document.createElement("div");
+      chip.className = `color-chip${isLightColor(color) ? " light" : ""}`;
+      chip.style.backgroundColor = formatHex(color);
       const label = document.createElement("span");
-      label.className = "color-value";
+      label.className = "color-chip-label";
       label.textContent = formatHex(color);
       const remove = document.createElement("button");
-      remove.className = "icon-button";
+      remove.className = "color-chip-remove";
       remove.type = "button";
       remove.textContent = "\xD7";
       remove.setAttribute("aria-label", `Remove ${formatHex(color)}`);
       remove.addEventListener("click", () => {
         const index = colors.findIndex((item) => colorKey(item) === colorKey(color));
-        if (index >= 0) {
-          colors.splice(index, 1);
-          renderColors();
-          updateActionState();
-          setStatus(`${formatHex(color)} removed.`);
-        }
+        if (index < 0) return;
+        colors.splice(index, 1);
+        renderColors();
+        updateActionState();
+        setStatus(`${formatHex(color)} removed.`);
       });
-      row.append(swatch, label, remove);
-      list.append(row);
+      chip.append(label, remove);
+      list.appendChild(chip);
     }
   }
   function initialize() {
@@ -496,95 +342,58 @@
     const hexInput = getElement("hex-input");
     const colorPicker = getElement("color-picker");
     const eyedropperButton = getElement("eyedropper-button");
-    const eyedropperClose = getElement("eyedropper-close");
-    const eyedropperPanel = getElement("eyedropper-panel");
-    const eyedropperPreview = getElement("eyedropper-preview");
     const toleranceInput = getElement("tolerance-input");
     const selectButton = getElement("select-button");
     const deleteButton = getElement("delete-button");
-    const presetSelect = getElement("preset-select");
-    const presetName = getElement("preset-name");
-    const presetStatus = getElement("preset-status");
-    const presetSave = getElement("preset-save");
-    const presetLoad = getElement("preset-load");
-    const presetRename = getElement("preset-rename");
-    const presetDelete = getElement("preset-delete");
     const targetInputs = Array.from(document.querySelectorAll('input[name="target"]'));
-    let samplingPreview;
-    const refreshPresets = async () => {
-      try {
-        const presets = await listPresets();
-        presetSelect.replaceChildren();
-        if (presets.length === 0) {
-          addSelectOption(presetSelect, "No saved presets", "");
-        } else {
-          for (const preset of presets) addSelectOption(presetSelect, preset.name, preset.name);
-        }
-        presetStatus.textContent = presets.length ? `${presets.length} saved` : "";
-      } catch (error) {
-        console.error("Preset load failed", error);
-        presetStatus.textContent = "Storage unavailable";
-        setStatus("Presets could not be loaded. The color removal tools are still available.", "error");
-      }
-    };
-    presetSave.addEventListener("click", async () => {
-      try {
-        const preset = createPreset(presetName.value, colors, Number(toleranceInput.value));
-        await savePreset(preset);
-        presetName.value = "";
-        await refreshPresets();
-        setStatus(`${preset.name} saved.`);
-      } catch (error) {
-        setStatus(error instanceof Error ? error.message : "Could not save preset.", "error");
-      }
-    });
-    presetLoad.addEventListener("click", async () => {
-      const selected = presetSelect.value;
-      if (!selected) return;
-      try {
-        const preset = (await listPresets()).find((item) => item.name === selected);
-        if (!preset) return;
-        colors.splice(0, colors.length, ...preset.colors);
-        toleranceInput.value = String(preset.tolerance);
-        renderColors();
-        updateActionState();
-        setStatus(`${preset.name} loaded.`);
-      } catch (error) {
-        setStatus(error instanceof Error ? error.message : "Could not load preset.", "error");
-      }
-    });
-    presetRename.addEventListener("click", async () => {
-      const oldName = presetSelect.value;
-      const newName = presetName.value.trim();
-      if (!oldName || !newName) {
-        setStatus("Select a preset and enter its new name.", "error");
-        return;
-      }
-      try {
-        await renamePreset(oldName, newName);
-        presetName.value = "";
-        await refreshPresets();
-        setStatus(`${oldName} renamed to ${newName}.`);
-      } catch (error) {
-        setStatus(error instanceof Error ? error.message : "Could not rename preset.", "error");
-      }
-    });
-    presetDelete.addEventListener("click", async () => {
-      const selected = presetSelect.value;
-      if (!selected) return;
-      try {
-        await deletePreset(selected);
-        await refreshPresets();
-        setStatus(`${selected} deleted.`);
-      } catch (error) {
-        setStatus(error instanceof Error ? error.message : "Could not delete preset.", "error");
-      }
-    });
     updateActionState = () => {
       const enabled = colors.length > 0;
       selectButton.disabled = !enabled;
       deleteButton.disabled = !enabled;
     };
+    colorForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const parsed = parseHex(hexInput.value);
+      if (!parsed) {
+        setStatus("Enter a valid HEX color such as #FF00FF.", "error");
+        hexInput.focus();
+        return;
+      }
+      if (colors.some((color) => colorKey(color) === colorKey(parsed))) {
+        setStatus(`${formatHex(parsed)} is already in the list.`);
+      } else {
+        colors.push(parsed);
+        renderColors();
+        updateActionState();
+        setStatus(`${formatHex(parsed)} added.`);
+      }
+      hexInput.value = "";
+      hexInput.focus();
+    });
+    const syncHexFromPicker = () => {
+      hexInput.value = colorPicker.value.toUpperCase();
+    };
+    colorPicker.addEventListener("input", syncHexFromPicker);
+    colorPicker.addEventListener("change", () => {
+      syncHexFromPicker();
+      setStatus("Color picked. Click Add color to add it.");
+    });
+    hexInput.addEventListener("input", () => {
+      const parsed = parseHex(hexInput.value);
+      if (parsed) colorPicker.value = formatHex(parsed);
+    });
+    eyedropperButton.addEventListener("click", () => {
+      colorPicker.click();
+    });
+    toleranceInput.addEventListener("change", () => {
+      const tolerance = Number(toleranceInput.value);
+      if (!validateTolerance(tolerance)) {
+        toleranceInput.value = "0";
+        setStatus("Tolerance must be an integer from 0 to 255.", "error");
+        return;
+      }
+      setStatus(`Tolerance set to ${tolerance}.`);
+    });
     const runAction = async (deletePixels) => {
       const tolerance = Number(toleranceInput.value);
       if (!validateTolerance(tolerance)) {
@@ -607,89 +416,10 @@
         updateActionState();
       }
     };
-    colorForm.addEventListener("submit", (event) => {
-      event.preventDefault();
-      const parsed = parseHex(hexInput.value);
-      if (!parsed) {
-        setStatus("Enter a valid HEX color such as #FF00FF.", "error");
-        hexInput.focus();
-        return;
-      }
-      if (!colors.some((color) => colorKey(color) === colorKey(parsed))) {
-        colors.push(parsed);
-        renderColors();
-        updateActionState();
-        setStatus(`${formatHex(parsed)} added.`);
-      } else {
-        setStatus(`${formatHex(parsed)} is already in the list.`);
-      }
-      hexInput.value = "";
-      hexInput.focus();
-    });
-    const syncHexFromPicker = () => {
-      hexInput.value = colorPicker.value.toUpperCase();
-    };
-    colorPicker.addEventListener("input", syncHexFromPicker);
-    colorPicker.addEventListener("change", syncHexFromPicker);
-    hexInput.addEventListener("input", () => {
-      const parsed = parseHex(hexInput.value);
-      if (parsed) colorPicker.value = formatHex(parsed);
-    });
-    toleranceInput.addEventListener("change", () => {
-      const tolerance = Number(toleranceInput.value);
-      if (!validateTolerance(tolerance)) {
-        toleranceInput.value = "0";
-        setStatus("Tolerance must be an integer from 0 to 255.", "error");
-        return;
-      }
-      setStatus(`Tolerance set to ${tolerance}.`);
-    });
-    const closeEyedropper = () => {
-      samplingPreview = void 0;
-      eyedropperPreview.removeAttribute("src");
-      eyedropperPanel.hidden = true;
-    };
-    eyedropperButton.addEventListener("click", async () => {
-      eyedropperButton.disabled = true;
-      setStatus("Preparing a document preview for color sampling...");
-      try {
-        samplingPreview = await createDefaultColorSamplingService().createPreview();
-        eyedropperPreview.src = samplingPreview.dataUrl;
-        eyedropperPanel.hidden = false;
-        setStatus("Click a pixel in the preview to sample its color.");
-      } catch (error) {
-        samplingPreview = void 0;
-        setStatus(userMessage(error), "error");
-      } finally {
-        eyedropperButton.disabled = false;
-      }
-    });
-    eyedropperClose.addEventListener("click", closeEyedropper);
-    eyedropperPreview.addEventListener("click", async (event) => {
-      if (!samplingPreview) return;
-      const rect = eyedropperPreview.getBoundingClientRect();
-      try {
-        const sampled = await createDefaultColorSamplingService().samplePreview(
-          samplingPreview,
-          event.clientX - rect.left,
-          event.clientY - rect.top,
-          rect.width,
-          rect.height
-        );
-        const sampledHex = formatHex(sampled);
-        hexInput.value = sampledHex;
-        colorPicker.value = sampledHex;
-        closeEyedropper();
-        setStatus(`${sampledHex} sampled from the document.`);
-      } catch (error) {
-        setStatus(userMessage(error), "error");
-      }
-    });
     selectButton.addEventListener("click", () => void runAction(false));
     deleteButton.addEventListener("click", () => void runAction(true));
     renderColors();
     updateActionState();
-    void refreshPresets();
   }
   initialize();
 })();

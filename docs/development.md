@@ -2,7 +2,7 @@
 
 ## Current phase
 
-The initial manifest, source tree, package configuration, panel shell, pure logic tests, Photoshop operation service, and preset service now exist. Photoshop host loading and document mutation still require manual verification in the UXP Developer Tool.
+The initial manifest, source tree, package configuration, panel shell, pure logic tests, and Photoshop operation service now exist. Photoshop host loading and document mutation still require manual verification in the UXP Developer Tool.
 
 ## Planned local setup
 
@@ -12,13 +12,11 @@ The initial manifest, source tree, package configuration, panel shell, pure logi
 4. Load the repository root through the UXP Developer Tool.
 5. Keep the developer console open while testing Photoshop operations.
 
-The current implementation exposes `Select` and `Select & Delete` only after at least one color has been added. The HEX field is synchronized with the native color picker. Target mode can be Active Layer or All Visible Layers; the latter processes visible raster layers recursively inside visible groups and reports skipped non-pixel layers. Preset controls use the plugin-scoped `plugin-data:/presets.json` storage path.
+The current implementation exposes `Select` and `Select & Delete` only after at least one color has been added. The HEX field is synchronized with the native color picker opened by the eyedropper icon button. Target mode can be Active Layer or All Visible Layers; the latter processes visible raster layers recursively inside visible groups and reports skipped non-pixel layers.
 
-The main content has its own scroll area, while the Select actions and status remain fixed at the bottom of the panel. Adding many colors uses a bounded list scroll area and does not push the action buttons out of view. Target options use a full-row click area with a larger custom radio indicator; the controls remain keyboard-focusable through their underlying radio inputs. Preset option nodes use `appendChild`, which is supported by UXP instead of the browser-only `HTMLSelectElement.add()` helper.
+The main content has its own scroll area, while the Select actions and status remain fixed at the bottom of the panel. Adding many colors uses a bounded list scroll area and does not push the action buttons out of view. Target options use a full-row click area with a larger custom radio indicator; the controls remain keyboard-focusable through their underlying radio inputs.
 
-The HEX row includes a native color input and a **Pick from canvas** action. The action creates a scaled document preview through the Imaging API; clicking the preview maps the click to document coordinates and calls the documented `Document.sampleColor` API. UXP does not expose a direct panel-to-Photoshop-canvas pointer event, so the preview is the supported, deterministic eyedropper interaction.
-
-The current manifest uses Manifest v5, Photoshop minimum version 24.0.0, and Photoshop API version 2. The manifest and host version must be rechecked before release.
+The HEX row is one container containing the text input, an eyedropper icon button, and **Add color**. Selected colors render as swatch tiles with a top-right remove button. Settings and Target share one container. The current manifest uses Manifest v5, Photoshop minimum version 23.3.0, and Photoshop API version 2. The manifest and host version must be rechecked before release.
 
 ## Development load and `.ccx` packaging
 
@@ -56,7 +54,6 @@ The UI boundary should present concise messages for:
 - empty selection
 - selection creation failure
 - delete failure
-- storage failure
 - modal cancellation or Photoshop API error
 
 Developer diagnostics should include the operation, document/layer IDs where safe, host/API version, and the original error in the developer console.

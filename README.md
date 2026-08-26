@@ -4,7 +4,7 @@ An Adobe Photoshop UXP panel for selecting pixels matching one or more configure
 
 ## Project status
 
-The panel, Photoshop selection/deletion pipeline, persistent presets, native color picker, canvas color sampling preview, and visible pixel-layer targeting are implemented. The remaining release gate is manual validation in the UXP Developer Tool with a real Photoshop document.
+The panel, Photoshop selection/deletion pipeline, native color picker, and visible pixel-layer targeting are implemented. The remaining release gate is manual validation in the UXP Developer Tool with a real Photoshop document.
 
 The first implementation target is:
 
@@ -15,7 +15,8 @@ The first implementation target is:
 - Select
 - Select & Delete
 - Native color picker beside the HEX field
-- Canvas eyedropper preview beside the HEX field
+- Eyedropper color button and HEX input in one compact container
+- Color swatch tiles with one-click removal
 - Responsive scrolling content with always-visible actions
 
 Visible-layer mode traverses visible groups and processes only editable raster (`LayerKind.NORMAL`) layers. Visible adjustment, text, smart-object, and fill layers are reported as skipped because the Imaging API cannot safely map their rendered pixels back to editable source pixels.
@@ -38,7 +39,7 @@ This is deliberately not an ExtendScript/JSX plugin.
 
 Requirements:
 
-- Adobe Photoshop 24.0.0 or newer (the eyedropper uses `Document.sampleColor`)
+- Adobe Photoshop 23.3.0 or newer
 - UXP Developer Tool
 - Node.js 20 or newer
 
