@@ -23,6 +23,7 @@
           <label for="hex-input">HEX</label>
           <div class="input-row">
             <input id="hex-input" name="hex" type="text" placeholder="#FF00FF" maxlength="7" autocomplete="off" />
+            <input id="color-picker" class="color-picker" type="color" value="#FF00FF" aria-label="Choose a color" />
             <button type="submit" class="secondary">Add</button>
           </div>
         </form>
@@ -37,7 +38,8 @@
         <fieldset>
           <legend>Target</legend>
           <label class="radio-row"><input type="radio" name="target" value="active-layer" checked /> Active Layer</label>
-          <label class="radio-row disabled"><input type="radio" name="target" value="visible-layers" disabled /> All Visible Layers <span>(planned)</span></label>
+          <label class="radio-row"><input type="radio" name="target" value="visible-layers" /> All Visible Layers</label>
+          <p class="hint">Visible pixel layers are processed. Adjustment, text, and smart-object layers are skipped.</p>
         </fieldset>
       </section>
 
@@ -62,7 +64,7 @@
         <button id="delete-button" class="primary" type="button" disabled>Select &amp; Delete</button>
       </section>
 
-      <p id="status" class="status" role="status">Scaffold ready. Photoshop selection integration is next.</p>
+      <p id="status" class="status" role="status">Ready. Add one or more colors to begin.</p>
     </main>
     <script src="dist/main.js"></script>
   </body>

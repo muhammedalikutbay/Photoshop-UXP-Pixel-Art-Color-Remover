@@ -70,6 +70,19 @@ References:
 - [Document class](https://developer.adobe.com/photoshop/uxp/2022/ps-reference/classes/document)
 - [Layer class](https://developer.adobe.com/photoshop/uxp/2022/ps-reference/classes/layer)
 
+### Visible-layer targeting
+
+The `LayerKind` reference identifies `NORMAL` as a raster/pixel layer and `GROUP` as a container whose child layers are available through `layer.layers`. The implementation recursively visits visible groups, reads each visible `NORMAL` layer with `imaging.getPixels({ layerID })`, and ignores hidden descendants. Visible adjustment, text, smart-object, fill, and other non-pixel layers are skipped and reported because a composite read cannot safely identify which source layer pixels should be deleted.
+
+For Select, the per-layer masks are OR-ed into a document-coordinate mask and written once with `imaging.putSelection`. For Select & Delete, each layer receives its own mask before `layer.clear()` so a match on one layer does not clear an unrelated pixel at the same document coordinate on another layer. This uses documented Layer properties (`visible`, `kind`, `layers`, `locked`, `pixelsLocked`, `boundsNoEffects`) available from Photoshop 22.5/23.0 as noted in the official references.
+
+References:
+
+- [Layer constants](https://developer.adobe.com/photoshop/uxp/2022/ps-reference/modules/constants)
+- [Layer class](https://developer.adobe.com/photoshop/uxp/2022/ps-reference/classes/layer)
+- [Layers collection](https://developer.adobe.com/photoshop/uxp/2022/ps-reference/classes/layers)
+- [Imaging API](https://developer.adobe.com/photoshop/uxp/2022/ps-reference/media/imaging)
+
 ### Storage
 
 Presets should use the plugin data folder, not arbitrary filesystem paths. UXP documents `localFileSystem.getDataFolder()` as persistent across host-app version upgrades, and plugin-scoped storage is available without requesting unrestricted access. A simple JSON file can be read/written through the UXP storage APIs. Storage errors must be converted to user-facing messages.

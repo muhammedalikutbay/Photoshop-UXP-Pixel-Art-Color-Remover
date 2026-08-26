@@ -66,15 +66,13 @@ The exact file split can be reduced during implementation if a module remains tr
 ## Core operation
 
 1. Read and validate the UI state.
-2. Check that an active document exists.
-3. Check that the active target is an editable pixel layer.
-4. Read the target layer pixels at full resolution with Imaging API, requesting RGB/8-bit data in a known profile.
-5. Build one binary grayscale mask. A pixel is selected if it matches any configured color.
-6. Write the mask as the document selection with `imaging.putSelection({ replace: true })`.
-7. For Select, report the selection result and leave the selection active.
-8. For Select & Delete, clear the active layer pixels while the combined selection is active.
-9. Deselect after deletion, unless the final UX decision explicitly preserves the selection.
-10. Dispose all returned and created image-data objects, report the result, and handle cancellation/errors.
+2. Resolve either the active pixel layer or every visible editable pixel layer, recursively traversing visible groups.
+3. Read each target layer’s pixels at full resolution with Imaging API, requesting RGB/8-bit data in a known profile.
+4. Build one binary grayscale mask per layer. A pixel is selected if it matches any configured color.
+5. For Select, OR the per-layer masks into one document-sized mask and write one document selection with `imaging.putSelection({ replace: true })`.
+6. For Select & Delete on the active layer, write its mask, clear that layer, and deselect.
+7. For Select & Delete on visible layers, write and clear each layer with its own mask so a match on one layer cannot erase an unrelated pixel on another; then deselect.
+8. Dispose all returned and created image-data objects, report skipped non-pixel layers, and handle cancellation/errors.
 
 ## Color and tolerance semantics
 
@@ -89,7 +87,7 @@ This gives the requested range a predictable meaning: `0` means exact RGB equali
 
 ## Target-layer decision
 
-V1 uses the active layer only. “All Visible Layers” is a later capability because reading a composite image does not identify which source layer should be cleared, while clearing each visible layer has non-trivial semantics for adjustment layers, groups, clipping, masks, and blend modes.
+The shipped target modes are Active Layer and All Visible Layers. All Visible Layers does not read a composite image: it reads each visible `LayerKind.NORMAL` layer independently, unions the masks in document coordinates, and skips non-pixel layers with a user-facing count. Groups are traversed without being edited. This keeps adjustment, text, smart-object, clipping, and blend-mode semantics explicit instead of flattening or rasterizing them.
 
 ## Undo and state
 

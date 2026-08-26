@@ -101,59 +101,157 @@
     if (request.colors.length === 0) throw new PhotoshopOperationError("Add at least one color before running the operation.", "EMPTY_COLORS");
     if (!Number.isInteger(request.tolerance) || request.tolerance < 0 || request.tolerance > 255) throw new PhotoshopOperationError("Tolerance must be an integer from 0 to 255.", "INVALID_TOLERANCE");
     if (document2.mode !== ps.constants.DocumentMode.RGB || document2.bitsPerChannel !== ps.constants.BitsPerChannelType.EIGHT) throw new PhotoshopOperationError("V1 supports RGB documents at 8 bits/channel only.", "UNSUPPORTED_DOCUMENT");
-    const layer = document2.activeLayers[0];
-    if (!layer) throw new PhotoshopOperationError("Select an active pixel layer first.", "NO_ACTIVE_LAYER");
-    if (layer.kind !== ps.constants.LayerKind.NORMAL) throw new PhotoshopOperationError("The active layer must be a pixel layer.", "UNSUPPORTED_LAYER");
-    if (layer.locked || layer.pixelsLocked) throw new PhotoshopOperationError("Unlock the active layer before editing it.", "LOCKED_LAYER");
+    if (request.target === "active-layer") {
+      const layer = document2.activeLayers[0];
+      if (!layer) throw new PhotoshopOperationError("Select an active pixel layer first.", "NO_ACTIVE_LAYER");
+      validatePixelLayer(ps, layer);
+    }
+  }
+  function validatePixelLayer(ps, layer) {
+    if (layer.kind !== ps.constants.LayerKind.NORMAL) throw new PhotoshopOperationError("The target must be a pixel layer.", "UNSUPPORTED_LAYER");
+    if (layer.locked || layer.pixelsLocked) throw new PhotoshopOperationError("Unlock the target pixel layer before editing it.", "LOCKED_LAYER");
+  }
+  function collectVisiblePixelLayers(ps, layers, parentVisible = true) {
+    const result = [];
+    let skippedLayers = 0;
+    for (let index = 0; index < layers.length; index += 1) {
+      const layer = layers[index];
+      if (!layer) continue;
+      const isVisible = parentVisible && layer.visible;
+      if (!isVisible) continue;
+      if (layer.kind === ps.constants.LayerKind.GROUP) {
+        const children = collectVisiblePixelLayers(ps, layer.layers ?? [], isVisible);
+        result.push(...children.layers);
+        skippedLayers += children.skippedLayers;
+      } else if (layer.kind === ps.constants.LayerKind.NORMAL) {
+        validatePixelLayer(ps, layer);
+        result.push(layer);
+      } else {
+        skippedLayers += 1;
+      }
+    }
+    return { layers: result, skippedLayers };
+  }
+  function copyMaskIntoDocument(mask, sourceWidth, sourceHeight, sourceBounds, documentMask, documentWidth, documentHeight) {
+    const sourceLeft = Math.floor(sourceBounds.left);
+    const sourceTop = Math.floor(sourceBounds.top);
+    for (let y = 0; y < sourceHeight; y += 1) {
+      const documentY = sourceTop + y;
+      if (documentY < 0 || documentY >= documentHeight) continue;
+      for (let x = 0; x < sourceWidth; x += 1) {
+        const documentX = sourceLeft + x;
+        if (documentX < 0 || documentX >= documentWidth) continue;
+        if (mask[y * sourceWidth + x] !== 0) documentMask[documentY * documentWidth + documentX] = 255;
+      }
+    }
+  }
+  async function createSelectionImage(ps, mask, width, height) {
+    return ps.imaging.createImageDataFromBuffer(mask, {
+      width,
+      height,
+      components: 1,
+      chunky: true,
+      colorSpace: "Grayscale",
+      colorProfile: GRAY_PROFILE
+    });
   }
   async function runRemoval(ps, context, request) {
     if (context.isCancelled) throw new PhotoshopOperationError("Operation cancelled.", "CANCELLED");
     const document2 = ps.app.activeDocument;
     validateTarget(ps, document2, request);
-    const layer = document2.activeLayers[0];
-    const pixelData = await ps.imaging.getPixels({
-      documentID: document2.id,
-      layerID: layer.id,
-      sourceBounds: layer.boundsNoEffects,
-      colorSpace: "RGB",
-      colorProfile: RGB_PROFILE,
-      componentSize: 8
-    });
-    let sourceImage = pixelData.imageData;
-    let selectionImage;
-    try {
-      const data = await sourceImage.getData({ chunky: true });
-      const maskResult = buildPixelMask({ data, width: sourceImage.width, height: sourceImage.height, components: sourceImage.components === 4 ? 4 : 3 }, request.colors, request.tolerance);
-      if (maskResult.matchedPixels === 0) {
-        await document2.selection.deselect();
-        throw new PhotoshopOperationError("No matching pixels were found.", "EMPTY_SELECTION");
-      }
-      selectionImage = await ps.imaging.createImageDataFromBuffer(maskResult.mask, {
-        width: sourceImage.width,
-        height: sourceImage.height,
-        components: 1,
-        chunky: true,
-        colorSpace: "Grayscale",
-        colorProfile: GRAY_PROFILE
-      });
-      await ps.imaging.putSelection({
-        documentID: document2.id,
-        imageData: selectionImage,
-        replace: true,
-        targetBounds: { left: pixelData.sourceBounds.left, top: pixelData.sourceBounds.top },
-        commandName: request.deletePixels ? "Select and Delete Matching Colors" : "Select Matching Colors"
-      });
-      if (context.isCancelled) throw new PhotoshopOperationError("Operation cancelled.", "CANCELLED");
-      if (request.deletePixels) {
-        await layer.clear();
-        await document2.selection.deselect();
-      }
-      return { matchedPixels: maskResult.matchedPixels, deleted: request.deletePixels };
-    } finally {
-      selectionImage?.dispose();
-      sourceImage?.dispose();
-      sourceImage = void 0;
+    const isVisibleLayers = request.target === "visible-layers";
+    const targetInfo = isVisibleLayers ? collectVisiblePixelLayers(ps, document2.layers) : { layers: [document2.activeLayers[0]], skippedLayers: 0 };
+    if (targetInfo.layers.length === 0) {
+      const suffix = targetInfo.skippedLayers > 0 ? ` ${targetInfo.skippedLayers} visible non-pixel layer${targetInfo.skippedLayers === 1 ? " was" : "s were"} skipped.` : "";
+      throw new PhotoshopOperationError(`No visible pixel layers are available.${suffix}`, "NO_VISIBLE_PIXEL_LAYERS");
     }
+    const documentWidth = Math.floor(document2.width);
+    const documentHeight = Math.floor(document2.height);
+    if (!Number.isInteger(documentWidth) || !Number.isInteger(documentHeight) || documentWidth <= 0 || documentHeight <= 0) {
+      throw new PhotoshopOperationError("The document dimensions are not supported.", "UNSUPPORTED_DOCUMENT");
+    }
+    let selectionMask;
+    let selectionWidth = 0;
+    let selectionHeight = 0;
+    let selectionBounds;
+    let matchedPixels = 0;
+    let processedLayers = 0;
+    if (isVisibleLayers) {
+      selectionWidth = documentWidth;
+      selectionHeight = documentHeight;
+      selectionBounds = { left: 0, top: 0, right: documentWidth, bottom: documentHeight };
+      selectionMask = new Uint8Array(documentWidth * documentHeight);
+    }
+    for (const layer of targetInfo.layers) {
+      if (context.isCancelled) throw new PhotoshopOperationError("Operation cancelled.", "CANCELLED");
+      const pixelData = await ps.imaging.getPixels({
+        documentID: document2.id,
+        layerID: layer.id,
+        sourceBounds: layer.boundsNoEffects,
+        colorSpace: "RGB",
+        colorProfile: RGB_PROFILE,
+        componentSize: 8
+      });
+      let sourceImage = pixelData.imageData;
+      let layerSelection;
+      try {
+        const data = await sourceImage.getData({ chunky: true });
+        const sourceWidth = sourceImage.width;
+        const sourceHeight = sourceImage.height;
+        const maskResult = buildPixelMask({ data, width: sourceWidth, height: sourceHeight, components: sourceImage.components === 4 ? 4 : 3 }, request.colors, request.tolerance);
+        if (maskResult.matchedPixels === 0) continue;
+        matchedPixels += maskResult.matchedPixels;
+        processedLayers += 1;
+        const actualBounds = pixelData.sourceBounds;
+        if (!isVisibleLayers) {
+          selectionMask = maskResult.mask;
+          selectionWidth = sourceWidth;
+          selectionHeight = sourceHeight;
+          selectionBounds = actualBounds;
+        } else {
+          copyMaskIntoDocument(maskResult.mask, sourceWidth, sourceHeight, actualBounds, selectionMask, documentWidth, documentHeight);
+        }
+        if (request.deletePixels && isVisibleLayers) {
+          layerSelection = await createSelectionImage(ps, maskResult.mask, sourceWidth, sourceHeight);
+          await ps.imaging.putSelection({
+            documentID: document2.id,
+            imageData: layerSelection,
+            replace: true,
+            targetBounds: { left: actualBounds.left, top: actualBounds.top },
+            commandName: "Delete Matching Colors from Visible Layers"
+          });
+          await layer.clear();
+        }
+      } finally {
+        layerSelection?.dispose();
+        sourceImage?.dispose();
+        sourceImage = void 0;
+      }
+    }
+    if (matchedPixels === 0 || !selectionMask || !selectionBounds) {
+      await document2.selection.deselect();
+      const suffix = targetInfo.skippedLayers > 0 ? ` ${targetInfo.skippedLayers} visible non-pixel layer${targetInfo.skippedLayers === 1 ? " was" : "s were"} skipped.` : "";
+      throw new PhotoshopOperationError(`No matching pixels were found.${suffix}`, "EMPTY_SELECTION");
+    }
+    if (!isVisibleLayers || !request.deletePixels) {
+      const finalSelection = await createSelectionImage(ps, selectionMask, selectionWidth, selectionHeight);
+      try {
+        await ps.imaging.putSelection({
+          documentID: document2.id,
+          imageData: finalSelection,
+          replace: true,
+          targetBounds: { left: selectionBounds.left, top: selectionBounds.top },
+          commandName: request.deletePixels ? "Select and Delete Matching Colors" : "Select Matching Colors"
+        });
+      } finally {
+        finalSelection.dispose();
+      }
+    }
+    if (request.deletePixels) {
+      if (!isVisibleLayers) await targetInfo.layers[0].clear();
+      await document2.selection.deselect();
+    }
+    return { matchedPixels, deleted: request.deletePixels, processedLayers, skippedLayers: targetInfo.skippedLayers };
   }
   function createColorRemovalService(ps) {
     return async (request) => ps.core.executeAsModal(async (context) => {
@@ -310,6 +408,7 @@
   function initialize() {
     const colorForm = getElement("color-form");
     const hexInput = getElement("hex-input");
+    const colorPicker = getElement("color-picker");
     const toleranceInput = getElement("tolerance-input");
     const selectButton = getElement("select-button");
     const deleteButton = getElement("delete-button");
@@ -320,6 +419,7 @@
     const presetLoad = getElement("preset-load");
     const presetRename = getElement("preset-rename");
     const presetDelete = getElement("preset-delete");
+    const targetInputs = Array.from(document.querySelectorAll('input[name="target"]'));
     const refreshPresets = async () => {
       try {
         const presets = await listPresets();
@@ -403,8 +503,11 @@
       deleteButton.disabled = true;
       setStatus(deletePixels ? "Selecting and deleting matching pixels..." : "Selecting matching pixels...");
       try {
-        const result = await removeMatchingColors({ colors: [...colors], tolerance, deletePixels });
-        setStatus(`${result.matchedPixels.toLocaleString()} matching pixel${result.matchedPixels === 1 ? "" : "s"} ${deletePixels ? "deleted" : "selected"}.`);
+        const target = targetInputs.find((input) => input.checked)?.value === "visible-layers" ? "visible-layers" : "active-layer";
+        const result = await removeMatchingColors({ colors: [...colors], tolerance, deletePixels, target });
+        const layerSummary = target === "visible-layers" ? ` across ${result.processedLayers} visible pixel layer${result.processedLayers === 1 ? "" : "s"}` : "";
+        const skippedSummary = result.skippedLayers > 0 ? ` ${result.skippedLayers} unsupported visible layer${result.skippedLayers === 1 ? " was" : "s were"} skipped.` : ".";
+        setStatus(`${result.matchedPixels.toLocaleString()} matching pixel${result.matchedPixels === 1 ? "" : "s"} ${deletePixels ? "deleted" : "selected"}${layerSummary}${skippedSummary}`);
       } catch (error) {
         console.error("Color removal failed", error);
         setStatus(userMessage(error), "error");
@@ -430,6 +533,15 @@
       }
       hexInput.value = "";
       hexInput.focus();
+    });
+    const syncHexFromPicker = () => {
+      hexInput.value = colorPicker.value.toUpperCase();
+    };
+    colorPicker.addEventListener("input", syncHexFromPicker);
+    colorPicker.addEventListener("change", syncHexFromPicker);
+    hexInput.addEventListener("input", () => {
+      const parsed = parseHex(hexInput.value);
+      if (parsed) colorPicker.value = formatHex(parsed);
     });
     toleranceInput.addEventListener("change", () => {
       const tolerance = Number(toleranceInput.value);

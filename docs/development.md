@@ -12,7 +12,7 @@ The initial manifest, source tree, package configuration, panel shell, pure logi
 4. Load the repository root through the UXP Developer Tool.
 5. Keep the developer console open while testing Photoshop operations.
 
-The current implementation exposes `Select` and `Select & Delete` only after at least one color has been added. Preset controls use the plugin-scoped `plugin-data:/presets.json` storage path.
+The current implementation exposes `Select` and `Select & Delete` only after at least one color has been added. The HEX field is synchronized with the native color picker. Target mode can be Active Layer or All Visible Layers; the latter processes visible raster layers recursively inside visible groups and reports skipped non-pixel layers. Preset controls use the plugin-scoped `plugin-data:/presets.json` storage path.
 
 The current manifest uses Manifest v5, Photoshop minimum version 23.3.0, and Photoshop API version 2. The manifest and host version must be rechecked before release.
 
@@ -75,6 +75,9 @@ The first host test pass must cover:
 12. Indexed, Bitmap, Lab, CMYK, grayscale, and unsupported bit-depth documents.
 13. Background and locked pixel layers.
 14. Existing selection before Select and Select & Delete.
+15. Color picker and HEX synchronization.
+16. All Visible Layers with two visible pixel layers at different positions.
+17. Visible groups, hidden layers, locked visible layers, and visible non-pixel layers.
 
 For each test, record Photoshop version, document mode/bit depth, expected result, actual result, and any console error.
 

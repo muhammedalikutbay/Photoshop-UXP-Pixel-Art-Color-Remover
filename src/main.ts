@@ -65,6 +65,7 @@ function renderColors(): void {
 function initialize(): void {
   const colorForm = getElement<HTMLFormElement>("color-form");
   const hexInput = getElement<HTMLInputElement>("hex-input");
+  const colorPicker = getElement<HTMLInputElement>("color-picker");
   const toleranceInput = getElement<HTMLInputElement>("tolerance-input");
   const selectButton = getElement<HTMLButtonElement>("select-button");
   const deleteButton = getElement<HTMLButtonElement>("delete-button");
@@ -75,6 +76,7 @@ function initialize(): void {
   const presetLoad = getElement<HTMLButtonElement>("preset-load");
   const presetRename = getElement<HTMLButtonElement>("preset-rename");
   const presetDelete = getElement<HTMLButtonElement>("preset-delete");
+  const targetInputs = Array.from(document.querySelectorAll<HTMLInputElement>('input[name="target"]'));
 
   const refreshPresets = async (): Promise<void> => {
     try {
@@ -165,8 +167,11 @@ function initialize(): void {
     deleteButton.disabled = true;
     setStatus(deletePixels ? "Selecting and deleting matching pixels..." : "Selecting matching pixels...");
     try {
-      const result = await removeMatchingColors({ colors: [...colors], tolerance, deletePixels });
-      setStatus(`${result.matchedPixels.toLocaleString()} matching pixel${result.matchedPixels === 1 ? "" : "s"} ${deletePixels ? "deleted" : "selected"}.`);
+      const target = targetInputs.find((input) => input.checked)?.value === "visible-layers" ? "visible-layers" : "active-layer";
+      const result = await removeMatchingColors({ colors: [...colors], tolerance, deletePixels, target });
+      const layerSummary = target === "visible-layers" ? ` across ${result.processedLayers} visible pixel layer${result.processedLayers === 1 ? "" : "s"}` : "";
+      const skippedSummary = result.skippedLayers > 0 ? ` ${result.skippedLayers} unsupported visible layer${result.skippedLayers === 1 ? " was" : "s were"} skipped.` : ".";
+      setStatus(`${result.matchedPixels.toLocaleString()} matching pixel${result.matchedPixels === 1 ? "" : "s"} ${deletePixels ? "deleted" : "selected"}${layerSummary}${skippedSummary}`);
     } catch (error) {
       console.error("Color removal failed", error);
       setStatus(userMessage(error), "error");
@@ -195,6 +200,17 @@ function initialize(): void {
 
     hexInput.value = "";
     hexInput.focus();
+  });
+
+  const syncHexFromPicker = (): void => {
+    hexInput.value = colorPicker.value.toUpperCase();
+  };
+  colorPicker.addEventListener("input", syncHexFromPicker);
+  colorPicker.addEventListener("change", syncHexFromPicker);
+
+  hexInput.addEventListener("input", () => {
+    const parsed = parseHex(hexInput.value);
+    if (parsed) colorPicker.value = formatHex(parsed);
   });
 
   toleranceInput.addEventListener("change", () => {

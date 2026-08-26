@@ -4,6 +4,7 @@ export class PhotoshopOperationError extends Error {
     readonly code:
       | "NO_DOCUMENT"
       | "NO_ACTIVE_LAYER"
+      | "NO_VISIBLE_PIXEL_LAYERS"
       | "UNSUPPORTED_DOCUMENT"
       | "UNSUPPORTED_LAYER"
       | "LOCKED_LAYER"

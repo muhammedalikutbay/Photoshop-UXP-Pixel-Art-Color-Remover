@@ -45,18 +45,19 @@
 - [x] Implement Save, Load, Delete, and Rename.
 - [ ] Verify corrupted or missing storage data gracefully in the host.
 
-## Phase 6 — Target expansion
+## Phase 6 — Target expansion — implementation complete, host verification pending
 
-- Prototype “All Visible Layers” with explicit handling for pixel layers, groups, masks, and adjustment layers.
-- Decide whether the operation is a composite selection plus per-layer clearing or a different native workflow.
-- Ship only after behavior is reliable and documented.
+- [x] Add All Visible Layers target mode for visible editable raster layers.
+- [x] Traverse visible groups and skip unsupported rendered-only layer kinds with a user-facing count.
+- [x] Use per-layer masks for deletion and a document-coordinate union mask for Select.
+- [ ] Verify groups, clipping, masks, adjustment layers, and blend modes in Photoshop 26.11.2.
 
-## Phase 7 — UI polish and optional integrations
+## Phase 7 — UI polish and optional integrations — implementation complete, host verification pending
 
 - Add compact keyboard-friendly layout and theme-aware styling.
-- Evaluate native Photoshop color picker integration through verified batchPlay or a safe fallback HEX-only flow.
+- [x] Add a native UXP HTML color picker synchronized with the HEX field.
 - Add status details such as matched-pixel count only if it does not add unsafe or expensive processing.
 
 ## Release gates
 
-The MVP is not complete until the actual Photoshop host confirms multi-color union, tolerance 0, transparency, deletion, and undo. Presets and visible-layer targeting must not delay or obscure that core validation. Before distribution, package the built plugin as `.ccx` through UXP Developer Tool and test the installed package separately from the development-loaded plugin.
+The release is not complete until the actual Photoshop host confirms multi-color union, tolerance 0, transparency, deletion, undo, color picker input, and visible pixel-layer targeting. Before distribution, package the built plugin as `.ccx` through UXP Developer Tool and test the installed package separately from the development-loaded plugin.

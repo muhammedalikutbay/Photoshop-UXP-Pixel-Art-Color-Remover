@@ -1,21 +1,22 @@
 # Photoshop UXP — Pixel Art Color Remover
 
-An Adobe Photoshop UXP panel for selecting pixels matching one or more configured colors and removing them from the active pixel layer.
+An Adobe Photoshop UXP panel for selecting pixels matching one or more configured colors and removing them from one pixel layer or all visible pixel layers.
 
 ## Project status
 
-The initial scaffold, Photoshop selection/deletion pipeline, and persistent presets are now implemented. The remaining release gate is manual validation in the UXP Developer Tool with a real Photoshop document.
+The panel, Photoshop selection/deletion pipeline, persistent presets, native color picker, and visible pixel-layer targeting are implemented. The remaining release gate is manual validation in the UXP Developer Tool with a real Photoshop document.
 
 The first implementation target is:
 
 - HEX color list
-- Active pixel layer
+- Active pixel layer or all visible pixel layers
 - Tolerance from 0 to 255
 - One combined selection for all colors
 - Select
 - Select & Delete
+- Native color picker beside the HEX field
 
-Presets, visible-layer targeting, color-picker integration, and UI polish follow the MVP.
+Visible-layer mode traverses visible groups and processes only editable raster (`LayerKind.NORMAL`) layers. Visible adjustment, text, smart-object, and fill layers are reported as skipped because the Imaging API cannot safely map their rendered pixels back to editable source pixels.
 
 ## Technical direction
 
@@ -46,7 +47,7 @@ npm install
 npm run check
 ```
 
-Then load the repository root in the UXP Developer Tool. The generated `dist/main.js` is intentionally ignored by Git and must be rebuilt after source changes.
+Then load the repository root in the UXP Developer Tool. The generated `dist/main.js` is part of the distributable plugin and must be rebuilt after source changes.
 
 Available commands:
 
@@ -66,4 +67,4 @@ The aescripts [ZXP/UXP Installer](https://aescripts.com/learn/post/zxp-installer
 - The supported Photoshop version must still be manually verified in the UXP Developer Tool.
 - The UXP host must be tested with RGB 8-bit pixel layers, locked layers, transparency, existing selections, and undo.
 - The Color Range batchPlay action remains an experimental fallback, not the primary implementation.
-- “All Visible Layers” is intentionally deferred until its behavior can be implemented and tested reliably.
+- “All Visible Layers” processes visible editable raster layers. Non-pixel visible layers are skipped and reported; they are not destructively flattened or rasterized.

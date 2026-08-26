@@ -12,6 +12,9 @@ export interface PhotoshopDocument {
   readonly id: number;
   readonly mode: unknown;
   readonly bitsPerChannel: unknown;
+  readonly width: number;
+  readonly height: number;
+  readonly layers: readonly PhotoshopLayer[];
   readonly activeLayers: readonly PhotoshopLayer[];
   readonly selection: { deselect(): Promise<void> };
 }
@@ -19,9 +22,12 @@ export interface PhotoshopDocument {
 export interface PhotoshopLayer {
   readonly id: number;
   readonly kind: unknown;
+  readonly name?: string;
+  readonly visible: boolean;
   readonly locked: boolean;
   readonly pixelsLocked: boolean;
   readonly boundsNoEffects: { left: number; top: number; right: number; bottom: number };
+  readonly layers?: readonly PhotoshopLayer[];
   clear(): Promise<void>;
 }
 
@@ -62,7 +68,7 @@ export interface PhotoshopImaging {
 export interface PhotoshopConstants {
   readonly DocumentMode: { readonly RGB: unknown };
   readonly BitsPerChannelType: { readonly EIGHT: unknown };
-  readonly LayerKind: { readonly NORMAL: unknown };
+  readonly LayerKind: { readonly NORMAL: unknown; readonly GROUP: unknown };
 }
 
 export interface PhotoshopModule {
@@ -81,9 +87,12 @@ export interface RemovalRequest {
   readonly colors: readonly RGBColor[];
   readonly tolerance: number;
   readonly deletePixels: boolean;
+  readonly target: "active-layer" | "visible-layers";
 }
 
 export interface RemovalResult {
   readonly matchedPixels: number;
   readonly deleted: boolean;
+  readonly processedLayers: number;
+  readonly skippedLayers: number;
 }
