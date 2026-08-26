@@ -4,7 +4,7 @@ An Adobe Photoshop UXP panel for selecting pixels matching one or more configure
 
 ## Project status
 
-The initial scaffold is now in place. Photoshop selection/deletion integration is not implemented yet.
+The initial scaffold, Photoshop selection/deletion pipeline, and persistent presets are now implemented. The remaining release gate is manual validation in the UXP Developer Tool with a real Photoshop document.
 
 The first implementation target is:
 
@@ -57,7 +57,7 @@ Available commands:
 
 ## Known limitations at this stage
 
-- Photoshop selection and deletion APIs are not connected yet.
-- The supported Photoshop version must be fixed during scaffolding and verified in the UXP Developer Tool.
+- The supported Photoshop version must still be manually verified in the UXP Developer Tool.
+- The UXP host must be tested with RGB 8-bit pixel layers, locked layers, transparency, existing selections, and undo.
 - The Color Range batchPlay action remains an experimental fallback, not the primary implementation.
 - “All Visible Layers” is intentionally deferred until its behavior can be implemented and tested reliably.

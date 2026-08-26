@@ -15,30 +15,35 @@
 - [x] Add a minimal panel shell.
 - [ ] Confirm the plugin loads in the UXP Developer Tool.
 
-## Phase 3 — MVP core — started
+## Phase 3 — MVP core — implementation complete, host verification pending
 
 - [x] Implement HEX parsing, normalization, validation, and deduplication.
 - [x] Implement tolerance validation and pure pixel-mask matching.
+- [x] Read active-layer RGB pixels through Imaging API.
+- [x] Build one combined selection for all configured colors.
+- [x] Add Select and Select & Delete commands.
+- [x] Add modal execution, history suspension, cancellation checks, disposal, and error handling.
+- [ ] Verify the full pipeline in the UXP Developer Tool.
 - Validate active document and active pixel layer.
 - Read full-resolution layer pixels through Imaging API.
 - Build and apply one combined selection.
 - Add Select and Select & Delete commands.
 - Add modal execution, history behavior, cancellation, disposal, and error handling.
 
-## Phase 4 — MVP verification and documentation
+## Phase 4 — MVP verification and documentation — in progress
 
-- Run the pure unit tests.
-- Run the Photoshop manual test matrix in `docs/development.md`.
-- Measure memory and runtime on representative large images.
-- Confirm unsupported modes and layers fail safely.
-- Update README with real setup/build/load instructions.
+- [x] Run the pure unit tests.
+- [ ] Run the Photoshop manual test matrix in `docs/development.md`.
+- [ ] Measure memory and runtime on representative large images.
+- [ ] Confirm unsupported modes and layers fail safely in the host.
+- [x] Update README with setup/build/load instructions.
 
-## Phase 5 — Presets
+## Phase 5 — Presets — implementation complete, host verification pending
 
-- Add versioned preset model.
-- Store presets in the UXP plugin data folder.
-- Implement Save, Load, Delete, and Rename.
-- Handle corrupted or missing storage data gracefully.
+- [x] Add versioned preset model.
+- [x] Store presets in the UXP plugin data folder.
+- [x] Implement Save, Load, Delete, and Rename.
+- [ ] Verify corrupted or missing storage data gracefully in the host.
 
 ## Phase 6 — Target expansion
 

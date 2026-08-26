@@ -6,6 +6,8 @@ Sources were checked against Adobe’s official developer documentation. The off
 
 ## Decisions
 
+The initial implementation now uses the documented APIs described below. The implementation is host-ready but still requires manual execution in Photoshop because this repository environment does not provide the UXP runtime.
+
 ### Manifest
 
 Use Manifest v5 during scaffolding. Adobe documents v5 as the current manifest feature set, with the permissions model and support from Photoshop 23.3. The manifest should target a concrete minimum version selected during scaffolding rather than leaving the host range implicit. The plugin needs only plugin-scoped storage permission for presets; it does not need network or unrestricted filesystem access.

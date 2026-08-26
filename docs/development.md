@@ -2,7 +2,7 @@
 
 ## Current phase
 
-The initial manifest, source tree, package configuration, panel shell, and pure logic tests now exist. Photoshop host loading and document mutation are still pending.
+The initial manifest, source tree, package configuration, panel shell, pure logic tests, Photoshop operation service, and preset service now exist. Photoshop host loading and document mutation still require manual verification in the UXP Developer Tool.
 
 ## Planned local setup
 
@@ -11,6 +11,8 @@ The initial manifest, source tree, package configuration, panel shell, and pure 
 3. Run `npm run check`.
 4. Load the repository root through the UXP Developer Tool.
 5. Keep the developer console open while testing Photoshop operations.
+
+The current implementation exposes `Select` and `Select & Delete` only after at least one color has been added. Preset controls use the plugin-scoped `plugin-data:/presets.json` storage path.
 
 The current manifest uses Manifest v5, Photoshop minimum version 23.3.0, and Photoshop API version 2. The manifest and host version must be rechecked before release.
 
