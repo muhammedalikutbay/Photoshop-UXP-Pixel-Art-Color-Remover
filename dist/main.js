@@ -88,6 +88,11 @@
   };
   function userMessage(error) {
     if (error instanceof PhotoshopOperationError) return error.message;
+    const possibleMessage = error instanceof Error ? error.message : error && typeof error === "object" && "message" in error && typeof error.message === "string" ? error.message : void 0;
+    if (possibleMessage) {
+      const detail = possibleMessage.replace(/\s+/g, " ").trim().slice(0, 180);
+      return `Photoshop operation failed: ${detail}`;
+    }
     return "Photoshop operation failed. Check the developer console for details.";
   }
 
@@ -372,6 +377,12 @@
     status.textContent = message;
     status.dataset.kind = kind;
   }
+  function addSelectOption(select, label, value) {
+    const option = document.createElement("option");
+    option.textContent = label;
+    option.value = value;
+    select.add(option);
+  }
   function renderColors() {
     const list = getElement("color-list");
     const count = getElement("color-count");
@@ -425,14 +436,15 @@
         const presets = await listPresets();
         presetSelect.replaceChildren();
         if (presets.length === 0) {
-          presetSelect.add(new Option("No saved presets", ""));
+          addSelectOption(presetSelect, "No saved presets", "");
         } else {
-          for (const preset of presets) presetSelect.add(new Option(preset.name, preset.name));
+          for (const preset of presets) addSelectOption(presetSelect, preset.name, preset.name);
         }
         presetStatus.textContent = presets.length ? `${presets.length} saved` : "";
       } catch (error) {
         console.error("Preset load failed", error);
-        presetStatus.textContent = "Storage error";
+        presetStatus.textContent = "Storage unavailable";
+        setStatus("Presets could not be loaded. The color removal tools are still available.", "error");
       }
     };
     presetSave.addEventListener("click", async () => {

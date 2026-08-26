@@ -15,6 +15,7 @@ The first implementation target is:
 - Select
 - Select & Delete
 - Native color picker beside the HEX field
+- Responsive color list with independent scrolling and always-visible actions
 
 Visible-layer mode traverses visible groups and processes only editable raster (`LayerKind.NORMAL`) layers. Visible adjustment, text, smart-object, and fill layers are reported as skipped because the Imaging API cannot safely map their rendered pixels back to editable source pixels.
 

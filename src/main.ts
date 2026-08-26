@@ -23,6 +23,13 @@ function setStatus(message: string, kind: "info" | "error" = "info"): void {
   status.dataset.kind = kind;
 }
 
+function addSelectOption(select: HTMLSelectElement, label: string, value: string): void {
+  const option = document.createElement("option");
+  option.textContent = label;
+  option.value = value;
+  select.add(option);
+}
+
 function renderColors(): void {
   const list = getElement<HTMLDivElement>("color-list");
   const count = getElement<HTMLSpanElement>("color-count");
@@ -83,14 +90,15 @@ function initialize(): void {
       const presets = await listPresets();
       presetSelect.replaceChildren();
       if (presets.length === 0) {
-        presetSelect.add(new Option("No saved presets", ""));
+        addSelectOption(presetSelect, "No saved presets", "");
       } else {
-        for (const preset of presets) presetSelect.add(new Option(preset.name, preset.name));
+        for (const preset of presets) addSelectOption(presetSelect, preset.name, preset.name);
       }
       presetStatus.textContent = presets.length ? `${presets.length} saved` : "";
     } catch (error) {
       console.error("Preset load failed", error);
-      presetStatus.textContent = "Storage error";
+      presetStatus.textContent = "Storage unavailable";
+      setStatus("Presets could not be loaded. The color removal tools are still available.", "error");
     }
   };
 

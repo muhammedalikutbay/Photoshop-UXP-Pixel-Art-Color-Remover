@@ -5,29 +5,30 @@
   color: #f0f0f0;
 }
 
-* { box-sizing: border-box; }
+* { box-sizing: border-box; min-width: 0; }
 
-body { margin: 0; min-width: 230px; }
+body { margin: 0; min-width: 230px; width: 100%; overflow-x: hidden; overflow-y: auto; }
 
-.panel { padding: 14px; }
+.panel { width: 100%; padding: 14px; }
+.panel-header { min-width: 0; }
 .panel-header h1 { margin: 0; font-size: 17px; font-weight: 600; }
-.panel-header p { margin: 5px 0 0; color: #b8b8b8; font-size: 11px; line-height: 1.4; }
+.panel-header p { max-width: 100%; margin: 5px 0 0; color: #b8b8b8; font-size: 11px; line-height: 1.4; overflow-wrap: anywhere; }
 .section { border-top: 1px solid #454545; margin-top: 16px; padding-top: 13px; }
 .section-heading { display: flex; justify-content: space-between; align-items: center; }
 h2, legend { margin: 0 0 9px; color: #d8d8d8; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
 .muted, .disabled span { color: #888; font-size: 11px; }
-.color-list { min-height: 28px; }
+.color-list { min-height: 28px; max-height: 144px; padding-right: 3px; overflow-x: hidden; overflow-y: auto; }
 .color-row { display: flex; align-items: center; gap: 8px; min-height: 30px; }
-.swatch { width: 16px; height: 16px; border: 1px solid #999; border-radius: 2px; }
-.color-value { flex: 1; font-family: monospace; font-size: 12px; }
+.swatch { flex: 0 0 16px; width: 16px; height: 16px; border: 1px solid #999; border-radius: 2px; }
+.color-value { min-width: 0; flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: monospace; font-size: 12px; }
 .icon-button { border: 0; background: transparent; color: #bbb; cursor: pointer; font-size: 18px; line-height: 1; padding: 2px 5px; }
 .icon-button:hover { color: #fff; }
 .add-color-form { margin-top: 8px; }
 .add-color-form label { display: block; margin-bottom: 4px; color: #aaa; font-size: 10px; }
-.input-row { display: flex; gap: 7px; }
+.input-row { display: flex; min-width: 0; gap: 7px; }
 input[type="text"], input[type="number"] { min-width: 0; border: 1px solid #555; border-radius: 3px; background: #1f1f1f; color: #fff; padding: 7px; font-size: 12px; }
 input[type="text"] { flex: 1; font-family: monospace; }
-.color-picker { width: 36px; min-width: 36px; height: 32px; padding: 2px; border: 1px solid #555; border-radius: 3px; background: #1f1f1f; cursor: pointer; }
+.color-picker { flex: 0 0 36px; width: 36px; min-width: 36px; height: 32px; padding: 2px; border: 1px solid #555; border-radius: 3px; background: #1f1f1f; cursor: pointer; }
 .preset-select { width: 100%; border: 1px solid #555; border-radius: 3px; background: #1f1f1f; color: #fff; padding: 7px; font-size: 12px; }
 .preset-row { margin-top: 8px; }
 .preset-row input { font-family: Arial, sans-serif; }
@@ -36,7 +37,12 @@ input[type="text"] { flex: 1; font-family: monospace; }
 .field { display: flex; align-items: center; justify-content: space-between; color: #ccc; font-size: 12px; }
 input[type="number"] { width: 76px; }
 fieldset { border: 0; margin: 14px 0 0; padding: 0; }
-.radio-row { display: flex; gap: 7px; align-items: center; margin: 8px 0; color: #ccc; font-size: 12px; }
+.radio-row { position: relative; display: flex; gap: 8px; align-items: center; min-height: 32px; margin: 5px 0; padding: 5px 8px; border: 1px solid transparent; border-radius: 3px; color: #ccc; cursor: pointer; font-size: 12px; user-select: none; }
+.radio-row:hover { background: #353535; border-color: #505050; }
+.radio-row input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.radio-box { display: inline-flex; flex: 0 0 16px; width: 16px; height: 16px; align-items: center; justify-content: center; border: 1px solid #888; border-radius: 50%; background: #242424; }
+.radio-row input:checked + .radio-box { border-color: #d8d8d8; background: #d8d8d8; box-shadow: inset 0 0 0 4px #3c3c3c; }
+.radio-row input:focus + .radio-box { outline: 2px solid #4aa3ff; outline-offset: 2px; }
 .disabled { color: #777; }
 .hint { margin: 8px 0 0; color: #999; font-size: 10px; line-height: 1.35; }
 .actions { display: flex; gap: 8px; margin-top: 18px; }

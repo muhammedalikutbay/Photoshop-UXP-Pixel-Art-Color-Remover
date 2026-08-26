@@ -56,6 +56,7 @@
 
 - Add compact keyboard-friendly layout and theme-aware styling.
 - [x] Add a native UXP HTML color picker synchronized with the HEX field.
+- [x] Keep actions visible with a bounded, responsive color-list scroll area and full-row target controls.
 - Add status details such as matched-pixel count only if it does not add unsafe or expensive processing.
 
 ## Release gates
