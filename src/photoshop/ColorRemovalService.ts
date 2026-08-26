@@ -9,8 +9,7 @@ const GRAY_PROFILE = "Gray Gamma 2.2";
 
 function getPhotoshop(): PhotoshopModule { return require("photoshop"); }
 
-function validateTarget(document: PhotoshopDocument, request: RemovalRequest): void {
-  const ps = getPhotoshop();
+function validateTarget(ps: PhotoshopModule, document: PhotoshopDocument, request: RemovalRequest): void {
   if (request.colors.length === 0) throw new PhotoshopOperationError("Add at least one color before running the operation.", "EMPTY_COLORS");
   if (!Number.isInteger(request.tolerance) || request.tolerance < 0 || request.tolerance > 255) throw new PhotoshopOperationError("Tolerance must be an integer from 0 to 255.", "INVALID_TOLERANCE");
   if (document.mode !== ps.constants.DocumentMode.RGB || document.bitsPerChannel !== ps.constants.BitsPerChannelType.EIGHT) throw new PhotoshopOperationError("V1 supports RGB documents at 8 bits/channel only.", "UNSUPPORTED_DOCUMENT");
@@ -20,11 +19,10 @@ function validateTarget(document: PhotoshopDocument, request: RemovalRequest): v
   if (layer.locked || layer.pixelsLocked) throw new PhotoshopOperationError("Unlock the active layer before editing it.", "LOCKED_LAYER");
 }
 
-async function runRemoval(context: PhotoshopExecutionContext, request: RemovalRequest): Promise<RemovalResult> {
+async function runRemoval(ps: PhotoshopModule, context: PhotoshopExecutionContext, request: RemovalRequest): Promise<RemovalResult> {
   if (context.isCancelled) throw new PhotoshopOperationError("Operation cancelled.", "CANCELLED");
-  const ps = getPhotoshop();
   const document = ps.app.activeDocument;
-  validateTarget(document, request);
+  validateTarget(ps, document, request);
   const layer = document.activeLayers[0]!;
   const pixelData = await ps.imaging.getPixels({
     documentID: document.id,
@@ -72,19 +70,22 @@ async function runRemoval(context: PhotoshopExecutionContext, request: RemovalRe
   }
 }
 
+export function createColorRemovalService(ps: PhotoshopModule): (request: RemovalRequest) => Promise<RemovalResult> {
+  return async (request) => ps.core.executeAsModal(async (context) => {
+      if (ps.app.documents.length === 0) throw new PhotoshopOperationError("Open a Photoshop document first.", "NO_DOCUMENT");
+      const document = ps.app.activeDocument;
+      const suspension = await context.hostControl.suspendHistory({ documentID: document.id, name: request.deletePixels ? "Select and Delete Matching Colors" : "Select Matching Colors" });
+      try {
+        const result = await runRemoval(ps, context, request);
+        await context.hostControl.resumeHistory(suspension, true);
+        return result;
+      } catch (error) {
+        await context.hostControl.resumeHistory(suspension, false);
+        throw error;
+      }
+    }, { commandName: request.deletePixels ? "Select and Delete Matching Colors" : "Select Matching Colors" });
+}
+
 export async function removeMatchingColors(request: RemovalRequest): Promise<RemovalResult> {
-  const ps = getPhotoshop();
-  return ps.core.executeAsModal(async (context) => {
-    if (ps.app.documents.length === 0) throw new PhotoshopOperationError("Open a Photoshop document first.", "NO_DOCUMENT");
-    const document = ps.app.activeDocument;
-    const suspension = await context.hostControl.suspendHistory({ documentID: document.id, name: request.deletePixels ? "Select and Delete Matching Colors" : "Select Matching Colors" });
-    try {
-      const result = await runRemoval(context, request);
-      await context.hostControl.resumeHistory(suspension, true);
-      return result;
-    } catch (error) {
-      await context.hostControl.resumeHistory(suspension, false);
-      throw error;
-    }
-  }, { commandName: request.deletePixels ? "Select and Delete Matching Colors" : "Select Matching Colors" });
+  return createColorRemovalService(getPhotoshop())(request);
 }
