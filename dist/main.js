@@ -99,6 +99,18 @@
   // src/photoshop/ColorRemovalService.ts
   var RGB_PROFILE = "sRGB IEC61966-2.1";
   var GRAY_PROFILE = "Gray Gamma 2.2";
+  function normalizeBounds(raw) {
+    const bounds = {
+      left: Number(raw.left),
+      top: Number(raw.top),
+      right: Number(raw.right),
+      bottom: Number(raw.bottom)
+    };
+    if (!Object.values(bounds).every(Number.isFinite) || bounds.right < bounds.left || bounds.bottom < bounds.top) {
+      throw new PhotoshopOperationError("Photoshop returned invalid pixel bounds.", "UNSUPPORTED_LAYER");
+    }
+    return bounds;
+  }
   function getPhotoshop() {
     return __require("photoshop");
   }
@@ -189,10 +201,11 @@
     }
     for (const layer of targetInfo.layers) {
       if (context.isCancelled) throw new PhotoshopOperationError("Operation cancelled.", "CANCELLED");
+      const requestedBounds = normalizeBounds(layer.boundsNoEffects);
       const pixelData = await ps.imaging.getPixels({
         documentID: document2.id,
         layerID: layer.id,
-        sourceBounds: layer.boundsNoEffects,
+        sourceBounds: requestedBounds,
         colorSpace: "RGB",
         colorProfile: RGB_PROFILE,
         componentSize: 8
@@ -207,7 +220,7 @@
         if (maskResult.matchedPixels === 0) continue;
         matchedPixels += maskResult.matchedPixels;
         processedLayers += 1;
-        const actualBounds = pixelData.sourceBounds;
+        const actualBounds = normalizeBounds(pixelData.sourceBounds);
         if (!isVisibleLayers) {
           selectionMask = maskResult.mask;
           selectionWidth = sourceWidth;
@@ -275,6 +288,68 @@
   }
   async function removeMatchingColors(request) {
     return createColorRemovalService(getPhotoshop())(request);
+  }
+
+  // src/photoshop/ColorSamplingService.ts
+  var RGB_PROFILE2 = "sRGB IEC61966-2.1";
+  function clamp(value, minimum, maximum) {
+    return Math.max(minimum, Math.min(maximum, value));
+  }
+  function normalizeBounds2(raw) {
+    const bounds = {
+      left: Number(raw.left),
+      top: Number(raw.top),
+      right: Number(raw.right),
+      bottom: Number(raw.bottom)
+    };
+    if (!Object.values(bounds).every(Number.isFinite) || bounds.right <= bounds.left || bounds.bottom <= bounds.top) {
+      throw new PhotoshopOperationError("Photoshop returned invalid preview bounds.", "UNSUPPORTED_DOCUMENT");
+    }
+    return bounds;
+  }
+  function createColorSamplingService(ps) {
+    return {
+      async createPreview(maxWidth = 320) {
+        if (ps.app.documents.length === 0) throw new PhotoshopOperationError("Open a Photoshop document before using the eyedropper.", "NO_DOCUMENT");
+        const document2 = ps.app.activeDocument;
+        const documentWidth = Math.max(1, Math.floor(document2.width));
+        const documentHeight = Math.max(1, Math.floor(document2.height));
+        const previewWidth = Math.max(1, Math.min(maxWidth, documentWidth));
+        const result = await ps.imaging.getPixels({
+          documentID: document2.id,
+          sourceBounds: { left: 0, top: 0, right: documentWidth, bottom: documentHeight },
+          colorSpace: "RGB",
+          colorProfile: RGB_PROFILE2,
+          componentSize: 8,
+          targetSize: { width: previewWidth },
+          applyAlpha: true
+        });
+        try {
+          const encoded = await ps.imaging.encodeImageData({ imageData: result.imageData, base64: true });
+          const sourceBounds = normalizeBounds2(result.sourceBounds);
+          return {
+            dataUrl: `data:image/jpeg;base64,${encoded}`,
+            width: result.imageData.width,
+            height: result.imageData.height,
+            sourceBounds
+          };
+        } finally {
+          result.imageData.dispose();
+        }
+      },
+      async samplePreview(preview, offsetX, offsetY, displayWidth, displayHeight) {
+        if (displayWidth <= 0 || displayHeight <= 0) throw new Error("The eyedropper preview is not ready.");
+        const xRatio = clamp(offsetX / displayWidth, 0, 0.999999);
+        const yRatio = clamp(offsetY / displayHeight, 0, 0.999999);
+        const x = Math.floor(preview.sourceBounds.left + xRatio * (preview.sourceBounds.right - preview.sourceBounds.left));
+        const y = Math.floor(preview.sourceBounds.top + yRatio * (preview.sourceBounds.bottom - preview.sourceBounds.top));
+        const color = await ps.app.activeDocument.sampleColor({ x, y });
+        return { red: color.rgb.red, green: color.rgb.green, blue: color.rgb.blue };
+      }
+    };
+  }
+  function createDefaultColorSamplingService() {
+    return createColorSamplingService(__require("photoshop"));
   }
 
   // src/presets/Preset.ts
@@ -381,7 +456,7 @@
     const option = document.createElement("option");
     option.textContent = label;
     option.value = value;
-    select.add(option);
+    select.appendChild(option);
   }
   function renderColors() {
     const list = getElement("color-list");
@@ -420,6 +495,10 @@
     const colorForm = getElement("color-form");
     const hexInput = getElement("hex-input");
     const colorPicker = getElement("color-picker");
+    const eyedropperButton = getElement("eyedropper-button");
+    const eyedropperClose = getElement("eyedropper-close");
+    const eyedropperPanel = getElement("eyedropper-panel");
+    const eyedropperPreview = getElement("eyedropper-preview");
     const toleranceInput = getElement("tolerance-input");
     const selectButton = getElement("select-button");
     const deleteButton = getElement("delete-button");
@@ -431,6 +510,7 @@
     const presetRename = getElement("preset-rename");
     const presetDelete = getElement("preset-delete");
     const targetInputs = Array.from(document.querySelectorAll('input[name="target"]'));
+    let samplingPreview;
     const refreshPresets = async () => {
       try {
         const presets = await listPresets();
@@ -563,6 +643,47 @@
         return;
       }
       setStatus(`Tolerance set to ${tolerance}.`);
+    });
+    const closeEyedropper = () => {
+      samplingPreview = void 0;
+      eyedropperPreview.removeAttribute("src");
+      eyedropperPanel.hidden = true;
+    };
+    eyedropperButton.addEventListener("click", async () => {
+      eyedropperButton.disabled = true;
+      setStatus("Preparing a document preview for color sampling...");
+      try {
+        samplingPreview = await createDefaultColorSamplingService().createPreview();
+        eyedropperPreview.src = samplingPreview.dataUrl;
+        eyedropperPanel.hidden = false;
+        setStatus("Click a pixel in the preview to sample its color.");
+      } catch (error) {
+        samplingPreview = void 0;
+        setStatus(userMessage(error), "error");
+      } finally {
+        eyedropperButton.disabled = false;
+      }
+    });
+    eyedropperClose.addEventListener("click", closeEyedropper);
+    eyedropperPreview.addEventListener("click", async (event) => {
+      if (!samplingPreview) return;
+      const rect = eyedropperPreview.getBoundingClientRect();
+      try {
+        const sampled = await createDefaultColorSamplingService().samplePreview(
+          samplingPreview,
+          event.clientX - rect.left,
+          event.clientY - rect.top,
+          rect.width,
+          rect.height
+        );
+        const sampledHex = formatHex(sampled);
+        hexInput.value = sampledHex;
+        colorPicker.value = sampledHex;
+        closeEyedropper();
+        setStatus(`${sampledHex} sampled from the document.`);
+      } catch (error) {
+        setStatus(userMessage(error), "error");
+      }
     });
     selectButton.addEventListener("click", () => void runAction(false));
     deleteButton.addEventListener("click", () => void runAction(true));

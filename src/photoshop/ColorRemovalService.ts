@@ -17,6 +17,19 @@ const GRAY_PROFILE = "Gray Gamma 2.2";
 
 type Bounds = { left: number; top: number; right: number; bottom: number };
 
+function normalizeBounds(raw: { left: number; top: number; right: number; bottom: number }): Bounds {
+  const bounds = {
+    left: Number(raw.left),
+    top: Number(raw.top),
+    right: Number(raw.right),
+    bottom: Number(raw.bottom)
+  };
+  if (!Object.values(bounds).every(Number.isFinite) || bounds.right < bounds.left || bounds.bottom < bounds.top) {
+    throw new PhotoshopOperationError("Photoshop returned invalid pixel bounds.", "UNSUPPORTED_LAYER");
+  }
+  return bounds;
+}
+
 function getPhotoshop(): PhotoshopModule { return require("photoshop"); }
 
 function validateTarget(ps: PhotoshopModule, document: PhotoshopDocument, request: RemovalRequest): void {
@@ -121,10 +134,11 @@ async function runRemoval(ps: PhotoshopModule, context: PhotoshopExecutionContex
 
   for (const layer of targetInfo.layers) {
     if (context.isCancelled) throw new PhotoshopOperationError("Operation cancelled.", "CANCELLED");
+    const requestedBounds = normalizeBounds(layer.boundsNoEffects);
     const pixelData = await ps.imaging.getPixels({
       documentID: document.id,
       layerID: layer.id,
-      sourceBounds: layer.boundsNoEffects,
+      sourceBounds: requestedBounds,
       colorSpace: "RGB",
       colorProfile: RGB_PROFILE,
       componentSize: 8
@@ -141,7 +155,9 @@ async function runRemoval(ps: PhotoshopModule, context: PhotoshopExecutionContex
 
       matchedPixels += maskResult.matchedPixels;
       processedLayers += 1;
-      const actualBounds = pixelData.sourceBounds;
+      // DOM proxy objects are not reliably serializable by UXP. Keep bounds as
+      // plain numeric objects before passing them to Imaging APIs.
+      const actualBounds = normalizeBounds(pixelData.sourceBounds);
 
       if (!isVisibleLayers) {
         selectionMask = maskResult.mask;

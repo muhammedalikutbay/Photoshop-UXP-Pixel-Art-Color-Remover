@@ -14,9 +14,11 @@ The initial manifest, source tree, package configuration, panel shell, pure logi
 
 The current implementation exposes `Select` and `Select & Delete` only after at least one color has been added. The HEX field is synchronized with the native color picker. Target mode can be Active Layer or All Visible Layers; the latter processes visible raster layers recursively inside visible groups and reports skipped non-pixel layers. Preset controls use the plugin-scoped `plugin-data:/presets.json` storage path.
 
-The color list has a bounded scroll area so adding many colors does not push the action buttons out of view. Target options use a full-row click area with a larger custom radio indicator; the controls remain keyboard-focusable through their underlying radio inputs. Preset option nodes are created with DOM APIs supported by UXP rather than the browser-only `Option` constructor.
+The main content has its own scroll area, while the Select actions and status remain fixed at the bottom of the panel. Adding many colors uses a bounded list scroll area and does not push the action buttons out of view. Target options use a full-row click area with a larger custom radio indicator; the controls remain keyboard-focusable through their underlying radio inputs. Preset option nodes use `appendChild`, which is supported by UXP instead of the browser-only `HTMLSelectElement.add()` helper.
 
-The current manifest uses Manifest v5, Photoshop minimum version 23.3.0, and Photoshop API version 2. The manifest and host version must be rechecked before release.
+The HEX row includes a native color input and a **Pick from canvas** action. The action creates a scaled document preview through the Imaging API; clicking the preview maps the click to document coordinates and calls the documented `Document.sampleColor` API. UXP does not expose a direct panel-to-Photoshop-canvas pointer event, so the preview is the supported, deterministic eyedropper interaction.
+
+The current manifest uses Manifest v5, Photoshop minimum version 24.0.0, and Photoshop API version 2. The manifest and host version must be rechecked before release.
 
 ## Development load and `.ccx` packaging
 

@@ -63,6 +63,8 @@ src/
 
 The exact file split can be reduced during implementation if a module remains trivial. The important boundaries are the pure matching code and the Photoshop adapter.
 
+The color sampling path is separate from destructive Photoshop operations: the panel asks the Imaging API for a temporary scaled document preview, then maps a preview click to `Document.sampleColor`. This keeps the eyedropper deterministic without relying on an undocumented batchPlay descriptor or a canvas pointer event that UXP does not expose to panel HTML.
+
 ## Core operation
 
 1. Read and validate the UI state.

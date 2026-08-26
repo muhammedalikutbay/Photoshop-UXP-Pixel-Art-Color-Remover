@@ -2,6 +2,7 @@ import { colorKey, formatHex, type RGBColor } from "./core/color/Color";
 import { parseHex } from "./core/color/ColorParser";
 import { validateTolerance } from "./core/color/ColorValidator";
 import { removeMatchingColors } from "./photoshop/ColorRemovalService";
+import { createDefaultColorSamplingService, type SamplingPreview } from "./photoshop/ColorSamplingService";
 import { userMessage } from "./photoshop/PhotoshopErrors";
 import { createPreset } from "./presets/Preset";
 import { deletePreset, listPresets, renamePreset, savePreset } from "./presets/PresetService";
@@ -27,7 +28,8 @@ function addSelectOption(select: HTMLSelectElement, label: string, value: string
   const option = document.createElement("option");
   option.textContent = label;
   option.value = value;
-  select.add(option);
+  // UXP's HTMLSelectElement does not implement the browser-only add() helper.
+  select.appendChild(option);
 }
 
 function renderColors(): void {
@@ -73,6 +75,10 @@ function initialize(): void {
   const colorForm = getElement<HTMLFormElement>("color-form");
   const hexInput = getElement<HTMLInputElement>("hex-input");
   const colorPicker = getElement<HTMLInputElement>("color-picker");
+  const eyedropperButton = getElement<HTMLButtonElement>("eyedropper-button");
+  const eyedropperClose = getElement<HTMLButtonElement>("eyedropper-close");
+  const eyedropperPanel = getElement<HTMLDivElement>("eyedropper-panel");
+  const eyedropperPreview = getElement<HTMLImageElement>("eyedropper-preview");
   const toleranceInput = getElement<HTMLInputElement>("tolerance-input");
   const selectButton = getElement<HTMLButtonElement>("select-button");
   const deleteButton = getElement<HTMLButtonElement>("delete-button");
@@ -84,6 +90,7 @@ function initialize(): void {
   const presetRename = getElement<HTMLButtonElement>("preset-rename");
   const presetDelete = getElement<HTMLButtonElement>("preset-delete");
   const targetInputs = Array.from(document.querySelectorAll<HTMLInputElement>('input[name="target"]'));
+  let samplingPreview: SamplingPreview | undefined;
 
   const refreshPresets = async (): Promise<void> => {
     try {
@@ -229,6 +236,51 @@ function initialize(): void {
       return;
     }
     setStatus(`Tolerance set to ${tolerance}.`);
+  });
+
+  const closeEyedropper = (): void => {
+    samplingPreview = undefined;
+    eyedropperPreview.removeAttribute("src");
+    eyedropperPanel.hidden = true;
+  };
+
+  eyedropperButton.addEventListener("click", async () => {
+    eyedropperButton.disabled = true;
+    setStatus("Preparing a document preview for color sampling...");
+    try {
+      samplingPreview = await createDefaultColorSamplingService().createPreview();
+      eyedropperPreview.src = samplingPreview.dataUrl;
+      eyedropperPanel.hidden = false;
+      setStatus("Click a pixel in the preview to sample its color.");
+    } catch (error) {
+      samplingPreview = undefined;
+      setStatus(userMessage(error), "error");
+    } finally {
+      eyedropperButton.disabled = false;
+    }
+  });
+
+  eyedropperClose.addEventListener("click", closeEyedropper);
+
+  eyedropperPreview.addEventListener("click", async (event) => {
+    if (!samplingPreview) return;
+    const rect = eyedropperPreview.getBoundingClientRect();
+    try {
+      const sampled = await createDefaultColorSamplingService().samplePreview(
+        samplingPreview,
+        event.clientX - rect.left,
+        event.clientY - rect.top,
+        rect.width,
+        rect.height
+      );
+      const sampledHex = formatHex(sampled);
+      hexInput.value = sampledHex;
+      colorPicker.value = sampledHex;
+      closeEyedropper();
+      setStatus(`${sampledHex} sampled from the document.`);
+    } catch (error) {
+      setStatus(userMessage(error), "error");
+    }
   });
 
   selectButton.addEventListener("click", () => void runAction(false));

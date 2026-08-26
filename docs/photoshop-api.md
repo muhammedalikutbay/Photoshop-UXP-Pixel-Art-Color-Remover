@@ -10,7 +10,7 @@ The initial implementation now uses the documented APIs described below. The imp
 
 ### Manifest
 
-Use Manifest v5 during scaffolding. Adobe documents v5 as the current manifest feature set, with the permissions model and support from Photoshop 23.3. The manifest should target a concrete minimum version selected during scaffolding rather than leaving the host range implicit. The plugin needs only plugin-scoped storage permission for presets; it does not need network or unrestricted filesystem access.
+Use Manifest v5 during scaffolding. Adobe documents v5 as the current manifest feature set, with the permissions model and support from Photoshop 23.3. The plugin targets Photoshop 24.0.0 because the documented `Document.sampleColor({x, y})` API used by the eyedropper was introduced in Photoshop 24.0. The plugin needs only plugin-scoped storage permission for presets; it does not need network or unrestricted filesystem access.
 
 Relevant references:
 
@@ -91,6 +91,15 @@ References:
 
 - [UXP persistent file storage](https://developer.adobe.com/photoshop/uxp/2022/uxp-api/reference-js/modules/uxp/persistent-file-storage/storage)
 - [UXP file and folder guidance](https://developer.adobe.com/photoshop/uxp/guides/how-to/)
+
+### Canvas color sampling
+
+The eyedropper uses a two-step documented API flow. First, `imaging.getPixels` requests a scaled RGB preview of the active document and `imaging.encodeImageData` turns it into a panel image. When the user clicks that preview, the click is mapped back to document coordinates and `Document.sampleColor({x, y})` returns the sampled RGB color. The preview image data is disposed immediately after encoding. `sampleColor` requires Photoshop 24.0 or newer.
+
+References:
+
+- [Imaging API](https://developer.adobe.com/photoshop/uxp/2022/ps-reference/media/imaging)
+- [Document.sampleColor](https://developer.adobe.com/photoshop/uxp/2022/ps-reference/classes/document)
 
 ### UI
 

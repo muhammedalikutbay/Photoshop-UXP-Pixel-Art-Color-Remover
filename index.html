@@ -13,6 +13,7 @@
         <p>Remove configured colors from the active pixel layer.</p>
       </header>
 
+      <div class="panel-content">
       <section class="section" aria-labelledby="colors-heading">
         <div class="section-heading">
           <h2 id="colors-heading">Colors</h2>
@@ -21,10 +22,20 @@
         <div id="color-list" class="color-list" aria-live="polite"></div>
         <form id="color-form" class="add-color-form">
           <label for="hex-input">HEX</label>
-          <div class="input-row">
+          <div class="input-row color-input-row">
             <input id="hex-input" name="hex" type="text" placeholder="#FF00FF" maxlength="7" autocomplete="off" />
             <input id="color-picker" class="color-picker" type="color" value="#FF00FF" aria-label="Choose a color" />
-            <button type="submit" class="secondary">Add</button>
+          </div>
+          <div class="color-actions">
+            <button id="eyedropper-button" class="secondary" type="button">Pick from canvas</button>
+            <button type="submit" class="secondary">Add color</button>
+          </div>
+          <div id="eyedropper-panel" class="eyedropper-panel" hidden>
+            <div class="eyedropper-heading">
+              <span>Click a pixel in the preview</span>
+              <button id="eyedropper-close" class="secondary" type="button">Close</button>
+            </div>
+            <img id="eyedropper-preview" class="eyedropper-preview" alt="Document color sampling preview" draggable="false" />
           </div>
         </form>
       </section>
@@ -58,6 +69,7 @@
           <button id="preset-delete" class="secondary" type="button">Delete</button>
         </div>
       </section>
+      </div>
 
       <section class="actions">
         <button id="select-button" class="secondary" type="button" disabled>Select</button>
