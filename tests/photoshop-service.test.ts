@@ -92,4 +92,16 @@ describe("Photoshop color removal service", () => {
     await expect(createColorRemovalService(fixture.ps)({ colors: [{ red: 0, green: 0, blue: 0 }], tolerance: 0, deletePixels: false }))
       .rejects.toMatchObject({ code: "NO_DOCUMENT" } satisfies Partial<PhotoshopOperationError>);
   });
+
+  it("rejects locked and unsupported targets before reading pixels", async () => {
+    const locked = makePhotoshop(new Uint8Array([0, 0, 0]));
+    (locked.ps.app.activeDocument.activeLayers[0] as { locked: boolean }).locked = true;
+    await expect(createColorRemovalService(locked.ps)({ colors: [{ red: 0, green: 0, blue: 0 }], tolerance: 0, deletePixels: true }))
+      .rejects.toMatchObject({ code: "LOCKED_LAYER" } satisfies Partial<PhotoshopOperationError>);
+
+    const unsupported = makePhotoshop(new Uint8Array([0, 0, 0]));
+    (unsupported.ps.app.activeDocument.activeLayers[0] as { kind: unknown }).kind = "text";
+    await expect(createColorRemovalService(unsupported.ps)({ colors: [{ red: 0, green: 0, blue: 0 }], tolerance: 0, deletePixels: true }))
+      .rejects.toMatchObject({ code: "UNSUPPORTED_LAYER" } satisfies Partial<PhotoshopOperationError>);
+  });
 });
