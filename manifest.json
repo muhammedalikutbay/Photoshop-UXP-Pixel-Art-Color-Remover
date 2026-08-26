@@ -4,6 +4,22 @@
   "name": "Pixel Art Color Remover",
   "version": "0.1.0",
   "main": "index.html",
+  "icons": [
+    {
+      "width": 23,
+      "height": 23,
+      "path": "icons/dark.png",
+      "scale": [1, 2],
+      "theme": ["darkest", "dark", "medium"]
+    },
+    {
+      "width": 23,
+      "height": 23,
+      "path": "icons/light.png",
+      "scale": [1, 2],
+      "theme": ["lightest", "light"]
+    }
+  ],
   "host": {
     "app": "PS",
     "minVersion": "23.3.0",
