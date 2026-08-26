@@ -16,6 +16,17 @@ The current implementation exposes `Select` and `Select & Delete` only after at 
 
 The current manifest uses Manifest v5, Photoshop minimum version 23.3.0, and Photoshop API version 2. The manifest and host version must be rechecked before release.
 
+## Development load and `.ccx` packaging
+
+For development, use UXP Developer Tool:
+
+1. Run `npm run build`.
+2. Use **Add Plugin** and select the repository root.
+3. Use **Load & Watch** to load the panel into Photoshop.
+4. Use **Reload** after source changes. If `manifest.json` changes, use **Unload**, then **Load**.
+
+For an installable package, use the plugin’s `... → Package` action in UXP Developer Tool after building. Photoshop UXP plugins are distributed as `.ccx` files. The generated `.ccx` can be installed locally with a compatible installer such as the aescripts ZXP/UXP Installer. `.zxp` is the CEP format and is not the package format for this repository.
+
 ## Implementation workflow
 
 For each feature:

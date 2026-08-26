@@ -59,4 +59,4 @@
 
 ## Release gates
 
-The MVP is not complete until the actual Photoshop host confirms multi-color union, tolerance 0, transparency, deletion, and undo. Presets and visible-layer targeting must not delay or obscure that core validation.
+The MVP is not complete until the actual Photoshop host confirms multi-color union, tolerance 0, transparency, deletion, and undo. Presets and visible-layer targeting must not delay or obscure that core validation. Before distribution, package the built plugin as `.ccx` through UXP Developer Tool and test the installed package separately from the development-loaded plugin.

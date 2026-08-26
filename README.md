@@ -55,6 +55,12 @@ Available commands:
 - `npm run build` — bundle `src/main.ts` into `dist/main.js`
 - `npm run check` — typecheck, tests, and build
 
+## Package for installation
+
+This is a UXP plugin, so the distributable format is `.ccx`, not `.zxp`. After running `npm run build`, add the project to the UXP Developer Tool and choose `... → Package`. Select an output folder; the tool creates a `.ccx` package.
+
+The aescripts [ZXP/UXP Installer](https://aescripts.com/learn/post/zxp-installer) can install that `.ccx` file on Windows. Do not rename the project folder or manually rename a `.zip` file to `.ccx`. For local development, UXP Developer Tool’s `Load & Watch` is preferred; use the packaged `.ccx` to test the installable build.
+
 ## Known limitations at this stage
 
 - The supported Photoshop version must still be manually verified in the UXP Developer Tool.
