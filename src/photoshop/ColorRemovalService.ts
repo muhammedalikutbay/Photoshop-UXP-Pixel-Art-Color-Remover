@@ -75,6 +75,7 @@ async function runRemoval(context: PhotoshopExecutionContext, request: RemovalRe
 export async function removeMatchingColors(request: RemovalRequest): Promise<RemovalResult> {
   const ps = getPhotoshop();
   return ps.core.executeAsModal(async (context) => {
+    if (ps.app.documents.length === 0) throw new PhotoshopOperationError("Open a Photoshop document first.", "NO_DOCUMENT");
     const document = ps.app.activeDocument;
     const suspension = await context.hostControl.suspendHistory({ documentID: document.id, name: request.deletePixels ? "Select and Delete Matching Colors" : "Select Matching Colors" });
     try {

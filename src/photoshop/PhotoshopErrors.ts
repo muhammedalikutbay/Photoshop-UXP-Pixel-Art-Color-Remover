@@ -2,6 +2,7 @@ export class PhotoshopOperationError extends Error {
   constructor(
     message: string,
     readonly code:
+      | "NO_DOCUMENT"
       | "NO_ACTIVE_LAYER"
       | "UNSUPPORTED_DOCUMENT"
       | "UNSUPPORTED_LAYER"

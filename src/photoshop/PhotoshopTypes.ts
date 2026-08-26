@@ -67,6 +67,7 @@ export interface PhotoshopConstants {
 
 export interface PhotoshopModule {
   readonly app: {
+    readonly documents: readonly unknown[];
     readonly activeDocument: PhotoshopDocument;
   };
   readonly constants: PhotoshopConstants;
