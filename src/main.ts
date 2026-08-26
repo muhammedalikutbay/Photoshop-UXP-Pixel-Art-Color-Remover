@@ -1,8 +1,11 @@
 import { colorKey, formatHex, type RGBColor } from "./core/color/Color";
 import { parseHex } from "./core/color/ColorParser";
 import { validateTolerance } from "./core/color/ColorValidator";
+import { removeMatchingColors } from "./photoshop/ColorRemovalService";
+import { userMessage } from "./photoshop/PhotoshopErrors";
 
 const colors: RGBColor[] = [];
+let updateActionState: () => void = () => undefined;
 
 function getElement<T extends HTMLElement>(id: string): T {
   const element = document.getElementById(id);
@@ -47,6 +50,7 @@ function renderColors(): void {
       if (index >= 0) {
         colors.splice(index, 1);
         renderColors();
+        updateActionState();
         setStatus(`${formatHex(color)} removed.`);
       }
     });
@@ -60,6 +64,34 @@ function initialize(): void {
   const colorForm = getElement<HTMLFormElement>("color-form");
   const hexInput = getElement<HTMLInputElement>("hex-input");
   const toleranceInput = getElement<HTMLInputElement>("tolerance-input");
+  const selectButton = getElement<HTMLButtonElement>("select-button");
+  const deleteButton = getElement<HTMLButtonElement>("delete-button");
+
+  updateActionState = (): void => {
+    const enabled = colors.length > 0;
+    selectButton.disabled = !enabled;
+    deleteButton.disabled = !enabled;
+  };
+
+  const runAction = async (deletePixels: boolean): Promise<void> => {
+    const tolerance = Number(toleranceInput.value);
+    if (!validateTolerance(tolerance)) {
+      setStatus("Tolerance must be an integer from 0 to 255.", "error");
+      return;
+    }
+    selectButton.disabled = true;
+    deleteButton.disabled = true;
+    setStatus(deletePixels ? "Selecting and deleting matching pixels..." : "Selecting matching pixels...");
+    try {
+      const result = await removeMatchingColors({ colors: [...colors], tolerance, deletePixels });
+      setStatus(`${result.matchedPixels.toLocaleString()} matching pixel${result.matchedPixels === 1 ? "" : "s"} ${deletePixels ? "deleted" : "selected"}.`);
+    } catch (error) {
+      console.error("Color removal failed", error);
+      setStatus(userMessage(error), "error");
+    } finally {
+      updateActionState();
+    }
+  };
 
   colorForm.addEventListener("submit", (event) => {
     event.preventDefault();
@@ -73,6 +105,7 @@ function initialize(): void {
     if (!colors.some((color) => colorKey(color) === colorKey(parsed))) {
       colors.push(parsed);
       renderColors();
+      updateActionState();
       setStatus(`${formatHex(parsed)} added.`);
     } else {
       setStatus(`${formatHex(parsed)} is already in the list.`);
@@ -92,7 +125,11 @@ function initialize(): void {
     setStatus(`Tolerance set to ${tolerance}.`);
   });
 
+  selectButton.addEventListener("click", () => void runAction(false));
+  deleteButton.addEventListener("click", () => void runAction(true));
+
   renderColors();
+  updateActionState();
 }
 
 initialize();
